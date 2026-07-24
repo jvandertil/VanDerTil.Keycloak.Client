@@ -6,4 +6,12 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Refit.HttpClientFactory" Version="13.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="VanDerTil.Keycloak.Client.Tests" />
+  </ItemGroup>
+
 </Project>

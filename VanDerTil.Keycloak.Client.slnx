@@ -11,4 +11,7 @@
     <File Path="src/.editorconfig" />
     <Project Path="src/VanDerTil.Keycloak.Client/VanDerTil.Keycloak.Client.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/VanDerTil.Keycloak.Client.Tests/VanDerTil.Keycloak.Client.Tests.csproj" Id="fec6bbda-6c02-4b2d-9ee1-19e809c204ea" />
+  </Folder>
 </Solution>
