@@ -10,7 +10,7 @@ namespace VanDerTil.Keycloak.Client;
 /// Requests OpenID Connect access tokens from Keycloak for administrative API calls.
 /// Supports multiple authentication modes including direct grant, client credentials, and external token providers.
 /// </summary>
-public sealed class OpenIdConnectAccessTokenProvider
+internal sealed class OpenIdConnectAccessTokenProvider
 {
     /// <summary>
     /// The name of the HTTP client registration used for token requests.
@@ -56,7 +56,7 @@ public sealed class OpenIdConnectAccessTokenProvider
     /// The authentication method is determined by <see cref="KeycloakConnectionOptions.AuthenticationMode"/>.
     /// Each mode requires different configuration properties to be set.
     /// </remarks>
-    public async Task<string> GetAuthorizationTokenAsync(CancellationToken cancellationToken)
+    public async Task<string> GetAccessTokenAsync(CancellationToken cancellationToken)
     {
         return _options.AuthenticationMode switch
         {

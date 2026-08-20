@@ -8,18 +8,22 @@ namespace VanDerTil.Keycloak.Client.Configuration;
 internal sealed class KeycloakConfigurator : IKeycloakConfigurator
 {
     private readonly RefitClientFactory _clientFactory;
+    private readonly OpenIdConnectAccessTokenProvider _accessTokenProvider;
 
-    public KeycloakConfigurator(RefitClientFactory clientFactory)
+    public KeycloakConfigurator(RefitClientFactory clientFactory, OpenIdConnectAccessTokenProvider accessTokenProvider)
     {
         ArgumentNullException.ThrowIfNull(clientFactory);
+        ArgumentNullException.ThrowIfNull(accessTokenProvider);
 
         _clientFactory = clientFactory;
+        _accessTokenProvider = accessTokenProvider;
     }
 
-    public async Task ConfigureAsync(Action<KeycloakConfigurationBuilder> configure, string accessToken, CancellationToken cancellationToken)
+    public async Task ConfigureAsync(Action<KeycloakConfigurationBuilder> configure, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(configure);
-        ArgumentException.ThrowIfNullOrWhiteSpace(accessToken);
+
+        var accessToken = await _accessTokenProvider.GetAccessTokenAsync(cancellationToken).ConfigureAwait(false);
 
         var builder = new KeycloakConfigurationBuilder();
         configure(builder);

@@ -27,7 +27,6 @@ public sealed class KeycloakProvisioningIntegrationTests
     private static KeycloakContainer? _container;
     private static ServiceProvider? _serviceProvider;
     private static KeycloakConnectionOptions? _options;
-    private static string? _accessToken;
 
     [ClassInitialize]
     public static async Task ClassInitializeAsync(TestContext testContext)
@@ -82,9 +81,6 @@ public sealed class KeycloakProvisioningIntegrationTests
         services.AddSingleton<KeycloakConfigurator>();
 
         _serviceProvider = services.BuildServiceProvider();
-
-        var tokenProvider = _serviceProvider.GetRequiredService<OpenIdConnectAccessTokenProvider>();
-        _accessToken = await tokenProvider.GetAuthorizationTokenAsync(CancellationToken.None).ConfigureAwait(false);
     }
 
     [ClassCleanup]
@@ -113,17 +109,17 @@ public sealed class KeycloakProvisioningIntegrationTests
 
         await ConfigureKeycloakAsync(realmId).ConfigureAwait(false);
 
-        var realms = await CreateClient<IRealmsResource>().GetAllAsync(CancellationToken.None).ConfigureAwait(false);
+        var realms = await (await CreateClientAsync<IRealmsResource>()).GetAllAsync(CancellationToken.None).ConfigureAwait(false);
         var realm = realms.SingleOrDefault(r => string.Equals(r.Realm, realmId, StringComparison.OrdinalIgnoreCase));
 
         realm.ShouldNotBeNull();
         realm.Enabled.ShouldBeTrue();
 
-        var roles = await CreateClient<IRolesResource>().GetAllAsync(realmId, CancellationToken.None).ConfigureAwait(false);
+        var roles = await (await CreateClientAsync<IRolesResource>()).GetAllAsync(realmId, CancellationToken.None).ConfigureAwait(false);
         roles.Select(role => role.Name).ShouldContain("admin");
         roles.Select(role => role.Name).ShouldContain("scheduler");
 
-        var clients = await CreateClient<IClientsResource>().GetAllAsync(realmId, CancellationToken.None).ConfigureAwait(false);
+        var clients = await (await CreateClientAsync<IClientsResource>()).GetAllAsync(realmId, CancellationToken.None).ConfigureAwait(false);
         var webClient = clients.SingleOrDefault(client => string.Equals(client.ClientId, ClientId, StringComparison.Ordinal));
 
         webClient.ShouldNotBeNull();
@@ -137,14 +133,14 @@ public sealed class KeycloakProvisioningIntegrationTests
         webClient.Id.ShouldNotBeNullOrWhiteSpace();
         var clientInternalId = webClient.Id!;
 
-        var clientRoles = await CreateClient<IClientRolesResource>()
+        var clientRoles = await (await CreateClientAsync<IClientRolesResource>())
             .GetAllAsync(realmId, clientInternalId, CancellationToken.None)
             .ConfigureAwait(false);
 
         clientRoles.Select(r => r.Name).ShouldContain("admin");
         clientRoles.Select(r => r.Name).ShouldContain("scheduler");
 
-        var protocolMappers = await CreateClient<IClientProtocolMappersResource>()
+        var protocolMappers = await (await CreateClientAsync<IClientProtocolMappersResource>())
             .GetAllAsync(realmId, clientInternalId, CancellationToken.None)
             .ConfigureAwait(false);
 
@@ -154,13 +150,13 @@ public sealed class KeycloakProvisioningIntegrationTests
         rolesMapper.Config.ShouldNotBeNull();
         rolesMapper.Config["claim.name"].ShouldBe("roles");
 
-        var users = await CreateClient<IUsersResource>().GetAllAsync(realmId, CancellationToken.None).ConfigureAwait(false);
+        var users = await (await CreateClientAsync<IUsersResource>()).GetAllAsync(realmId, CancellationToken.None).ConfigureAwait(false);
         var testUser = users.SingleOrDefault(user => string.Equals(user.Username, SeedUsername, StringComparison.Ordinal));
 
         testUser.ShouldNotBeNull();
         testUser.Id.ShouldNotBeNullOrWhiteSpace();
 
-        var userClientRoles = await CreateClient<IUsersResource>()
+        var userClientRoles = await (await CreateClientAsync<IUsersResource>())
             .GetClientRoleMappingsAsync(realmId, testUser.Id, clientInternalId, CancellationToken.None)
             .ConfigureAwait(false);
 
@@ -176,14 +172,14 @@ public sealed class KeycloakProvisioningIntegrationTests
         await ConfigureKeycloakAsync(realmId).ConfigureAwait(false);
         await ConfigureKeycloakAsync(realmId).ConfigureAwait(false);
 
-        var roles = await CreateClient<IRolesResource>().GetAllAsync(realmId, CancellationToken.None).ConfigureAwait(false);
+        var roles = await (await CreateClientAsync<IRolesResource>()).GetAllAsync(realmId, CancellationToken.None).ConfigureAwait(false);
         roles.Count(role => string.Equals(role.Name, "admin", StringComparison.OrdinalIgnoreCase)).ShouldBe(1);
         roles.Count(role => string.Equals(role.Name, "scheduler", StringComparison.OrdinalIgnoreCase)).ShouldBe(1);
 
-        var users = await CreateClient<IUsersResource>().GetAllAsync(realmId, CancellationToken.None).ConfigureAwait(false);
+        var users = await (await CreateClientAsync<IUsersResource>()).GetAllAsync(realmId, CancellationToken.None).ConfigureAwait(false);
         users.Count(user => string.Equals(user.Username, SeedUsername, StringComparison.Ordinal)).ShouldBe(1);
 
-        var clients = await CreateClient<IClientsResource>().GetAllAsync(realmId, CancellationToken.None).ConfigureAwait(false);
+        var clients = await (await CreateClientAsync<IClientsResource>()).GetAllAsync(realmId, CancellationToken.None).ConfigureAwait(false);
         clients.Count(client => string.Equals(client.ClientId, ClientId, StringComparison.Ordinal)).ShouldBe(1);
     }
 
@@ -193,7 +189,6 @@ public sealed class KeycloakProvisioningIntegrationTests
 
         await configurator.ConfigureAsync(
                 builder => ConfigureDesiredState(builder, realmId),
-                _accessToken!,
                 CancellationToken.None)
             .ConfigureAwait(false);
     }
@@ -242,10 +237,13 @@ public sealed class KeycloakProvisioningIntegrationTests
         return $"sa-{Guid.NewGuid():N}"[..15];
     }
 
-    private static TClient CreateClient<TClient>() where TClient : class
+    private static async Task<TClient> CreateClientAsync<TClient>() where TClient : class
     {
         var factory = _serviceProvider!.GetRequiredService<RefitClientFactory>();
-        return factory.Create<TClient>(_accessToken!);
+        var accessTokenProvider = _serviceProvider!.GetRequiredService<OpenIdConnectAccessTokenProvider>();
+        var accessToken = await accessTokenProvider.GetAccessTokenAsync(CancellationToken.None);
+
+        return factory.Create<TClient>(accessToken);
     }
 
     private static void EnsureIntegrationReady()
@@ -253,6 +251,5 @@ public sealed class KeycloakProvisioningIntegrationTests
         _container.ShouldNotBeNull();
         _serviceProvider.ShouldNotBeNull();
         _options.ShouldNotBeNull();
-        _accessToken.ShouldNotBeNullOrWhiteSpace();
     }
 }

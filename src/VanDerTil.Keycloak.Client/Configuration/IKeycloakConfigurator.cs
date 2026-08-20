@@ -11,9 +11,6 @@ public interface IKeycloakConfigurator
     /// <param name="configure">
     /// A callback that builds the desired Keycloak state by using <see cref="KeycloakConfigurationBuilder"/> and its nested builders.
     /// </param>
-    /// <param name="accessToken">
-    /// A bearer token for the Keycloak admin API. The token is used for all provisioning requests made during this operation.
-    /// </param>
     /// <param name="cancellationToken">A token that can be used to cancel the provisioning operation.</param>
     /// <returns>A task that completes when all requested provisioning operations have finished.</returns>
     /// <remarks>
@@ -36,8 +33,8 @@ public interface IKeycloakConfigurator
     ///         .AddUser("alice", user =&gt; user
     ///             .WithEmail("alice@example.com")
     ///             .InRole("Admin")));
-    /// }, accessToken, cancellationToken);
+    /// }, cancellationToken);
     /// </code>
     /// </example>
-    Task ConfigureAsync(Action<KeycloakConfigurationBuilder> configure, string accessToken, CancellationToken cancellationToken);
+    Task ConfigureAsync(Action<KeycloakConfigurationBuilder> configure, CancellationToken cancellationToken);
 }

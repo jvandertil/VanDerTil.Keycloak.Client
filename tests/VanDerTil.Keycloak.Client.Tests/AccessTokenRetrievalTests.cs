@@ -23,7 +23,7 @@ public sealed class AccessTokenRetrievalTests
 
             var provider = CreateProvider(handler);
 
-            await Should.ThrowAsync<InvalidOperationException>(() => provider.GetAuthorizationTokenAsync(CancellationToken.None));
+            await Should.ThrowAsync<InvalidOperationException>(() => provider.GetAccessTokenAsync(CancellationToken.None));
         }
 
         [TestMethod]
@@ -37,7 +37,7 @@ public sealed class AccessTokenRetrievalTests
 
             var provider = CreateProvider(handler);
 
-            await Should.ThrowAsync<InvalidOperationException>(() => provider.GetAuthorizationTokenAsync(CancellationToken.None));
+            await Should.ThrowAsync<InvalidOperationException>(() => provider.GetAccessTokenAsync(CancellationToken.None));
         }
 
         private static OpenIdConnectAccessTokenProvider CreateProvider(HttpMessageHandler handler)

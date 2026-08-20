@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <PackageId>VanDerTil.Keycloak.Client</PackageId>
-    <Version>1.0.0</Version>
+    <Version>2.0.0</Version>
     <Authors>Jos van der Til</Authors>
     <Description>A fluent builder and provisioning engine for the Keycloak admin API. Configure realms, clients, users, roles, and protocol mappers with a desired state configuration approach. Supports idempotent provisioning for reliable infrastructure-as-code workflows.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
