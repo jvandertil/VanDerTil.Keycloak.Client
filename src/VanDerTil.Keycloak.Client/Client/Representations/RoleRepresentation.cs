@@ -1,6 +1,6 @@
 namespace VanDerTil.Keycloak.Client.Client.Representations;
 
-public class RoleRepresentation
+internal class RoleRepresentation
 {
     public string? Id { get; set; }
 

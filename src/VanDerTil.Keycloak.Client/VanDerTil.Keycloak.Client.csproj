@@ -1,13 +1,24 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
+    <PackageId>VanDerTil.Keycloak.Client</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Jos van der Til</Authors>
+    <Description>A fluent builder and provisioning engine for the Keycloak admin API. Configure realms, clients, users, roles, and protocol mappers with a desired state configuration approach. Supports idempotent provisioning for reliable infrastructure-as-code workflows.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/jvandertil/VanDerTil.Keycloak.Client</RepositoryUrl>
+    <PackageProjectUrl>https://github.com/jvandertil/VanDerTil.Keycloak.Client</PackageProjectUrl>
+    <PackageTags>keycloak;admin-api;identity;authentication;authorization;openid-connect;oidc;fluent-api;infrastructure-as-code;provisioning</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Refit.HttpClientFactory" Version="13.1.0" />
+    <PackageReference Include="Refit.HttpClientFactory" Version="15.2.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
   <ItemGroup>

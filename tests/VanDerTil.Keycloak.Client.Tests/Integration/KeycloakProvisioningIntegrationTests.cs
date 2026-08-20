@@ -43,6 +43,7 @@ public sealed class KeycloakProvisioningIntegrationTests
         _options = new KeycloakConnectionOptions
         {
             BaseUrl = _container.GetBaseAddress().ToString(),
+            AuthenticationMode = AuthenticationMode.DirectGrant,
             AdminUsername = AdminUsername,
             AdminPassword = AdminPassword,
             AdminRealm = "master",
@@ -57,6 +58,7 @@ public sealed class KeycloakProvisioningIntegrationTests
             .Configure(options =>
             {
                 options.BaseUrl = _options.BaseUrl;
+                options.AuthenticationMode = _options.AuthenticationMode;
                 options.AdminUsername = _options.AdminUsername;
                 options.AdminPassword = _options.AdminPassword;
                 options.SeedTestUser = _options.SeedTestUser;

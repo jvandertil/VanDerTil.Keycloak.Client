@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace VanDerTil.Keycloak.Client.Client.Representations;
 
-public class ProtocolMapperRepresentation
+internal class ProtocolMapperRepresentation
 {
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string? Id { get; set; }

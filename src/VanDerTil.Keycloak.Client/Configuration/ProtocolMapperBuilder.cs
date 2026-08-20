@@ -21,6 +21,10 @@ public sealed class ProtocolMapperBuilder
     /// <summary>
     /// Sets a configuration entry on the mapper.
     /// </summary>
+    /// <param name="key">The mapper configuration key to set.</param>
+    /// <param name="value">The value to store for the configuration key.</param>
+    /// <returns>The current builder.</returns>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="key"/> is <see langword="null"/>, empty, or whitespace.</exception>
     public ProtocolMapperBuilder WithConfig(string key, string value)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
@@ -36,6 +40,10 @@ public sealed class ProtocolMapperBuilder
     /// </summary>
     /// <param name="name">The display name of the mapper as shown in Keycloak.</param>
     /// <param name="claimName">The token claim name to populate (e.g. <c>"roles"</c>).</param>
+    /// <returns>A builder preconfigured for the standard user client roles mapper.</returns>
+    /// <exception cref="ArgumentException">
+    /// Thrown when <paramref name="name"/> or <paramref name="claimName"/> is <see langword="null"/>, empty, or whitespace.
+    /// </exception>
     public static ProtocolMapperBuilder UserClientRolesToClaim(string name, string claimName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);

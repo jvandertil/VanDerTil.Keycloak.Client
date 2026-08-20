@@ -1,6 +1,6 @@
 namespace VanDerTil.Keycloak.Client.Client.Representations;
 
-public class ClientSecretRepresentation
+internal class ClientSecretRepresentation
 {
     public string? Value { get; set; }
 }

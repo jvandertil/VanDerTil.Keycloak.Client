@@ -1,9 +1,11 @@
+using System.Linq;
+
 using VanDerTil.Keycloak.Client.Client;
 using VanDerTil.Keycloak.Client.Client.Representations;
 
 namespace VanDerTil.Keycloak.Client.Configuration;
 
-public sealed class KeycloakConfigurator : IKeycloakConfigurator
+internal sealed class KeycloakConfigurator : IKeycloakConfigurator
 {
     private readonly RefitClientFactory _clientFactory;
 
@@ -17,6 +19,7 @@ public sealed class KeycloakConfigurator : IKeycloakConfigurator
     public async Task ConfigureAsync(Action<KeycloakConfigurationBuilder> configure, string accessToken, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(configure);
+        ArgumentException.ThrowIfNullOrWhiteSpace(accessToken);
 
         var builder = new KeycloakConfigurationBuilder();
         configure(builder);
@@ -43,7 +46,7 @@ public sealed class KeycloakConfigurator : IKeycloakConfigurator
         }
         else
         {
-            await realmClient.UpdateAsync(realmId, MergeRealm(existingRealm, desiredRealm), cancellationToken).ConfigureAwait(false);
+            await realmClient.UpdateAsync(realmId, MergeRealm(existingRealm, desiredRealm, realmBuilder), cancellationToken).ConfigureAwait(false);
         }
 
         await ConfigureRolesAsync(realmId, realmBuilder.Roles, accessToken, cancellationToken).ConfigureAwait(false);
@@ -96,7 +99,7 @@ public sealed class KeycloakConfigurator : IKeycloakConfigurator
             else
             {
                 internalId = existing.Id ?? throw new InvalidOperationException($"The client '{representation.ClientId}' does not have a Keycloak internal id.");
-                var mergedRepresentation = MergeClient(existing, representation);
+                var mergedRepresentation = MergeClient(existing, representation, clientBuilder);
                 await clientsResource.UpdateAsync(realmId, internalId, mergedRepresentation, cancellationToken).ConfigureAwait(false);
             }
 
@@ -284,18 +287,18 @@ public sealed class KeycloakConfigurator : IKeycloakConfigurator
         }
     }
 
-    private static RealmRepresentation MergeRealm(RealmRepresentation existing, RealmRepresentation desired)
+    private static RealmRepresentation MergeRealm(RealmRepresentation existing, RealmRepresentation desired, RealmBuilder realmBuilder)
     {
         return new RealmRepresentation
         {
             Id = existing.Id ?? desired.Id,
             Realm = existing.Realm ?? desired.Realm,
             DisplayName = desired.DisplayName ?? existing.DisplayName,
-            Enabled = desired.Enabled,
+            Enabled = realmBuilder.EnabledValue ?? existing.Enabled,
         };
     }
 
-    private static ClientRepresentation MergeClient(ClientRepresentation existing, ClientRepresentation desired)
+    private static ClientRepresentation MergeClient(ClientRepresentation existing, ClientRepresentation desired, ClientBuilder clientBuilder)
     {
         // Merge attributes: start from existing, then overlay desired values so that desired takes precedence.
         Dictionary<string, string>? mergedAttributes = null;
@@ -321,11 +324,11 @@ public sealed class KeycloakConfigurator : IKeycloakConfigurator
             // Keycloak does not return client secrets in GET responses, so existing.Secret is always null.
             // Only include Secret in the update payload when explicitly provided.
             Secret = string.IsNullOrWhiteSpace(desired.Secret) ? null : desired.Secret,
-            PublicClient = desired.PublicClient,
-            StandardFlowEnabled = desired.StandardFlowEnabled,
+            PublicClient = clientBuilder.PublicClientValue ?? existing.PublicClient,
+            StandardFlowEnabled = clientBuilder.StandardFlowEnabledValue ?? existing.StandardFlowEnabled,
             RedirectUris = desired.RedirectUris is { Count: > 0 } ? desired.RedirectUris : existing.RedirectUris,
             Attributes = mergedAttributes,
-            Enabled = desired.Enabled,
+            Enabled = clientBuilder.EnabledValue ?? existing.Enabled,
         };
     }
 

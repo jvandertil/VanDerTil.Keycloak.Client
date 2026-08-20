@@ -45,8 +45,10 @@ public sealed class AccessTokenRetrievalTests
             var options = Options.Create(new KeycloakConnectionOptions
             {
                 BaseUrl = "http://localhost:43000",
+                AuthenticationMode = AuthenticationMode.DirectGrant,
                 AdminUsername = "admin",
                 AdminPassword = "admin",
+                AdminRealm = "master",
             });
 
             var factory = new StubHttpClientFactory(new HttpClient(handler));

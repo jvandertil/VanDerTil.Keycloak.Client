@@ -1,10 +1,11 @@
-﻿using System.Net.Http.Headers;
+﻿using System.Net.Http;
+using System.Net.Http.Headers;
 
 using Refit;
 
 namespace VanDerTil.Keycloak.Client.Client;
 
-public sealed class RefitClientFactory
+internal sealed class RefitClientFactory
 {
     public const string HttpClientName = "KeycloakAdminApi";
 

@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace VanDerTil.Keycloak.Client.Client.Representations;
 
-public class ClientRepresentation
+internal class ClientRepresentation
 {
     public string? Id { get; set; }
 

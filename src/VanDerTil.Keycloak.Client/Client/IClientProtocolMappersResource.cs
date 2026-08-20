@@ -4,7 +4,7 @@ using VanDerTil.Keycloak.Client.Client.Representations;
 
 namespace VanDerTil.Keycloak.Client.Client;
 
-public interface IClientProtocolMappersResource
+internal interface IClientProtocolMappersResource
 {
     [Get("/admin/realms/{realm}/clients/{clientInternalId}/protocol-mappers/models")]
     Task<List<ProtocolMapperRepresentation>> GetAllAsync(string realm, string clientInternalId, CancellationToken cancellationToken = default);

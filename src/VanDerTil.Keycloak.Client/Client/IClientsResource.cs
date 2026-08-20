@@ -4,7 +4,7 @@ using VanDerTil.Keycloak.Client.Client.Representations;
 
 namespace VanDerTil.Keycloak.Client.Client;
 
-public interface IClientsResource
+internal interface IClientsResource
 {
     [Get("/admin/realms/{realm}/clients")]
     Task<List<ClientRepresentation>> GetAllAsync(string realm, CancellationToken cancellationToken = default);

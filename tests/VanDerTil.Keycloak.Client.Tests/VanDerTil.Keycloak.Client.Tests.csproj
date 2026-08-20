@@ -2,11 +2,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\VanDerTil.Keycloak.Client\VanDerTil.Keycloak.Client.csproj" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.10" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="10.0.11" />
 
     <!-- MSTest.Sdk version is managed in global.json -->
     <PackageReference Include="Shouldly" Version="4.3.0" />
-    <PackageReference Include="Testcontainers.Keycloak" Version="4.13.0" />
+    <PackageReference Include="Testcontainers.Keycloak" Version="4.14.0" />
   </ItemGroup>
 
   <ItemGroup>
