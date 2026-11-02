@@ -13,6 +13,7 @@ public sealed class ServiceCollectionExtensionsTests
     [TestMethod]
     public void Should_RegisterTheConfiguratorAndConnectionOptions()
     {
+        // Arrange
         var services = new ServiceCollection();
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -24,12 +25,14 @@ public sealed class ServiceCollectionExtensionsTests
             })
             .Build();
 
+        // Act
         services.AddKeycloakClient(configuration);
 
         using var serviceProvider = services.BuildServiceProvider();
         var options = serviceProvider.GetRequiredService<IOptions<KeycloakConnectionOptions>>().Value;
         var configurator = serviceProvider.GetRequiredService<IKeycloakConfigurator>();
 
+        // Assert
         options.BaseUrl.ShouldBe("https://example.com");
         options.AdminRealm.ShouldBe("master");
         configurator.ShouldNotBeNull();

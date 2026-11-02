@@ -1,5 +1,3 @@
-using System.Linq;
-
 using VanDerTil.Keycloak.Client.Configuration;
 
 namespace VanDerTil.Keycloak.Client.Tests.Configuration;
@@ -8,132 +6,133 @@ namespace VanDerTil.Keycloak.Client.Tests.Configuration;
 public sealed class ClientConfigurationTests
 {
     [TestMethod]
-    public void RealmRoleScope_ValidatesAndCopiesNames()
+    public void Should_CopyRealmRoleScopeNames()
     {
+        // Arrange
         var builder = new ClientBuilder("web");
-        builder.RealmRoleScopes.ShouldBeNull();
         string[] names = ["reader"];
+
+        // Act
         builder.WithRealmRoleScope(names);
         names[0] = "changed";
+
+        // Assert
         builder.RealmRoleScopes.ShouldBe(new[] { "reader" });
-        Should.Throw<ArgumentNullException>(() => builder.WithRealmRoleScope(null!));
-        Should.Throw<ArgumentException>(() => builder.WithRealmRoleScope(" "));
+    }
+
+    [TestMethod]
+    public void Should_RejectNullRealmRoleScopes()
+    {
+        // Arrange
+        var builder = new ClientBuilder("web");
+
+        // Act
+        Action configure = () => builder.WithRealmRoleScope(null!);
+
+        // Assert
+        Should.Throw<ArgumentNullException>(configure);
+    }
+
+    [TestMethod]
+    public void Should_RejectWhitespaceRealmRoleScopeNames()
+    {
+        // Arrange
+        var builder = new ClientBuilder("web");
+
+        // Act
+        Action configure = () => builder.WithRealmRoleScope(" ");
+
+        // Assert
+        Should.Throw<ArgumentException>(configure);
+    }
+
+    [TestMethod]
+    public void Should_ClearRealmRoleScopes_When_NoNamesAreProvided()
+    {
+        // Arrange
+        var builder = new ClientBuilder("web").WithRealmRoleScope("reader");
+
+        // Act
         builder.WithRealmRoleScope();
+
+        // Assert
         builder.RealmRoleScopes.ShouldBeEmpty();
     }
 
-    [TestClass]
-    public sealed class ConfiguringFromConfigurationSection
+    [TestMethod]
+    public void Should_IncludeConfiguredSecret()
     {
-        [TestMethod]
-        public void Should_ApplySecretRedirectUrisAndPostLogoutRedirectUris()
-        {
-            // Arrange
-            var builder = new KeycloakConfigurationBuilder();
+        // Arrange
+        var builder = new ClientBuilder("web");
 
-            // Act
-            builder.AddRealm("sample-app", realm =>
-            {
-                realm.AddClient("sample-app-web", client =>
-                {
-                    client.WithSecret("configured-secret");
-                    client.WithRedirectUri("https://configured.example/signin-oidc");
-                    client.WithRedirectUri("https://code.example/signin-oidc");
-                });
-            });
+        // Act
+        var client = builder.WithSecret("configured-secret").Build();
 
-            // Assert
-            var realm = builder.Realms.Single();
-            var client = realm.Clients.Single().Build();
-
-            client.Secret.ShouldBe("configured-secret");
-
-            client.RedirectUris.ShouldNotBeNull();
-            client.RedirectUris.Count.ShouldBe(2);
-            client.RedirectUris.ShouldContain("https://code.example/signin-oidc");
-            client.RedirectUris.ShouldContain("https://configured.example/signin-oidc");
-
-            client.Attributes.ShouldBeNull();
-        }
+        // Assert
+        client.Secret.ShouldBe("configured-secret");
     }
 
-    [TestClass]
-    public sealed class AddingClientRoles
+    [TestMethod]
+    public void Should_IncludeAllConfiguredRedirectUris()
     {
-        [TestMethod]
-        public void Should_TrackRoles()
+        // Arrange
+        var builder = new ClientBuilder("web");
+
+        // Act
+        var client = builder
+            .WithRedirectUri("https://configured.example/signin-oidc")
+            .WithRedirectUri("https://code.example/signin-oidc")
+            .Build();
+
+        // Assert
+        client.RedirectUris.ShouldBe(new[]
         {
-            // Arrange
-            var builder = new KeycloakConfigurationBuilder();
-            ClientBuilder? clientBuilder = null;
-
-            // Act
-            builder.AddRealm("sample-app", realm =>
-            {
-                realm.AddClient("sample-app-web", client =>
-                {
-                    clientBuilder = client;
-                    client.AddRole("admin");
-                    client.AddRole("scheduler");
-                });
-            });
-
-            // Assert
-            clientBuilder.ShouldNotBeNull();
-            clientBuilder.Roles.ShouldContain("admin");
-            clientBuilder.Roles.ShouldContain("scheduler");
-        }
+            "https://configured.example/signin-oidc",
+            "https://code.example/signin-oidc",
+        }, ignoreOrder: true);
     }
 
-    [TestClass]
-    public sealed class AddingProtocolMappers
+    [TestMethod]
+    public void Should_TrackClientRoles()
     {
-        [TestMethod]
-        public void Should_TrackMapper()
-        {
-            // Arrange
-            var builder = new KeycloakConfigurationBuilder();
-            ClientBuilder? clientBuilder = null;
+        // Arrange
+        var builder = new ClientBuilder("web");
 
-            // Act
-            builder.AddRealm("sample-app", realm =>
-            {
-                realm.AddClient("sample-app-web", client =>
-                {
-                    clientBuilder = client;
-                    client.AddProtocolMapper(ProtocolMapperBuilder.UserClientRolesToClaim("client-roles", "roles"));
-                });
-            });
+        // Act
+        builder.AddRole("admin").AddRole("scheduler");
 
-            // Assert
-            clientBuilder.ShouldNotBeNull();
-            clientBuilder.ProtocolMappers.ShouldHaveSingleItem();
+        // Assert
+        builder.Roles.ShouldBe(new[] { "admin", "scheduler" }, ignoreOrder: true);
+    }
 
-            var mapper = clientBuilder.ProtocolMappers.Single().Build();
-            mapper.Name.ShouldBe("client-roles");
-            mapper.ProtocolMapper.ShouldBe("oidc-usermodel-client-role-mapper");
-            mapper.Config.ShouldNotBeNull();
-            mapper.Config["claim.name"].ShouldBe("roles");
-            mapper.Config["multivalued"].ShouldBe("true");
-        }
+    [TestMethod]
+    public void Should_IncludeClientRolesInConfiguredClaim()
+    {
+        // Arrange
+        var builder = new ClientBuilder("web");
 
-        [TestMethod]
-        public void Should_ThrowArgumentNullException_When_MapperBuilderIsNull()
-        {
-            // Arrange
-            var builder = new KeycloakConfigurationBuilder();
-            ClientBuilder? clientBuilder = null;
+        // Act
+        builder.AddProtocolMapper(ProtocolMapperBuilder.UserClientRolesToClaim("client-roles", "roles"));
 
-            builder.AddRealm("sample-app", realm =>
-            {
-                realm.AddClient("sample-app-web", client =>
-                {
-                    clientBuilder = client;
-                });
-            });
+        // Assert
+        var mapper = builder.ProtocolMappers.ShouldHaveSingleItem().Build();
+        mapper.Name.ShouldBe("client-roles");
+        mapper.ProtocolMapper.ShouldBe("oidc-usermodel-client-role-mapper");
+        mapper.Config.ShouldNotBeNull();
+        mapper.Config["claim.name"].ShouldBe("roles");
+        mapper.Config["multivalued"].ShouldBe("true");
+    }
 
-            // Act & Assert
-            Should.Throw<ArgumentNullException>(() => clientBuilder!.AddProtocolMapper(null!));
-        }
+    [TestMethod]
+    public void Should_RejectNullProtocolMapper()
+    {
+        // Arrange
+        var builder = new ClientBuilder("web");
+
+        // Act
+        Action configure = () => builder.AddProtocolMapper(null!);
+
+        // Assert
+        Should.Throw<ArgumentNullException>(configure);
     }
 }

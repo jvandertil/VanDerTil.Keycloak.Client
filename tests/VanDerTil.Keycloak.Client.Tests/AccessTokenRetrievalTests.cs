@@ -6,83 +6,69 @@ using Microsoft.Extensions.Options;
 
 namespace VanDerTil.Keycloak.Client.Tests;
 
+[TestClass]
 public sealed class AccessTokenRetrievalTests
 {
-    [TestClass]
-    public sealed class ObtainingAnAccessToken
+    [TestMethod]
+    [DataRow("{}")]
+    [DataRow("{\"access_token\":\"   \"}")]
+    public async Task Should_RejectTokenResponseWithoutUsableAccessToken(string responseJson)
     {
-        [TestMethod]
-        public async Task Should_ThrowInvalidOperationException_When_AccessTokenIsMissing()
+        // Arrange
+        using var httpClient = new HttpClient(new StubTokenResponseHandler(responseJson));
+        var provider = CreateProvider(httpClient);
+
+        // Act
+        Func<Task> requestToken = () => provider.GetAccessTokenAsync(CancellationToken.None);
+
+        // Assert
+        await Should.ThrowAsync<InvalidOperationException>(requestToken);
+    }
+
+    private static OpenIdConnectAccessTokenProvider CreateProvider(HttpClient httpClient)
+    {
+        var options = Options.Create(new KeycloakConnectionOptions
         {
-            var handler = new StubHttpMessageHandler(_ =>
-                new HttpResponseMessage(HttpStatusCode.OK)
-                {
-                    Content = new StringContent("{}", Encoding.UTF8, "application/json"),
-                });
+            BaseUrl = "http://localhost:43000",
+            AuthenticationMode = AuthenticationMode.DirectGrant,
+            AdminUsername = "admin",
+            AdminPassword = "admin",
+            AdminRealm = "master",
+        });
 
+        return new OpenIdConnectAccessTokenProvider(new StubHttpClientFactory(httpClient), options);
+    }
 
-            var provider = CreateProvider(handler);
+    private sealed class StubHttpClientFactory : IHttpClientFactory
+    {
+        private readonly HttpClient _httpClient;
 
-            await Should.ThrowAsync<InvalidOperationException>(() => provider.GetAccessTokenAsync(CancellationToken.None));
+        public StubHttpClientFactory(HttpClient httpClient)
+        {
+            _httpClient = httpClient;
         }
 
-        [TestMethod]
-        public async Task Should_ThrowInvalidOperationException_When_AccessTokenIsWhitespace()
+        public HttpClient CreateClient(string name)
         {
-            var handler = new StubHttpMessageHandler(_ =>
-                new HttpResponseMessage(HttpStatusCode.OK)
-                {
-                    Content = new StringContent("{\"access_token\":\"   \"}", Encoding.UTF8, "application/json"),
-                });
+            return _httpClient;
+        }
+    }
 
-            var provider = CreateProvider(handler);
+    private sealed class StubTokenResponseHandler : HttpMessageHandler
+    {
+        private readonly string _responseJson;
 
-            await Should.ThrowAsync<InvalidOperationException>(() => provider.GetAccessTokenAsync(CancellationToken.None));
+        public StubTokenResponseHandler(string responseJson)
+        {
+            _responseJson = responseJson;
         }
 
-        private static OpenIdConnectAccessTokenProvider CreateProvider(HttpMessageHandler handler)
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
-            var options = Options.Create(new KeycloakConnectionOptions
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
             {
-                BaseUrl = "http://localhost:43000",
-                AuthenticationMode = AuthenticationMode.DirectGrant,
-                AdminUsername = "admin",
-                AdminPassword = "admin",
-                AdminRealm = "master",
+                Content = new StringContent(_responseJson, Encoding.UTF8, "application/json"),
             });
-
-            var factory = new StubHttpClientFactory(new HttpClient(handler));
-            return new OpenIdConnectAccessTokenProvider(factory, options);
-        }
-
-        private sealed class StubHttpClientFactory : IHttpClientFactory
-        {
-            private readonly HttpClient _httpClient;
-
-            public StubHttpClientFactory(HttpClient httpClient)
-            {
-                _httpClient = httpClient;
-            }
-
-            public HttpClient CreateClient(string name)
-            {
-                return _httpClient;
-            }
-        }
-
-        private sealed class StubHttpMessageHandler : HttpMessageHandler
-        {
-            private readonly Func<HttpRequestMessage, HttpResponseMessage> _responseFactory;
-
-            public StubHttpMessageHandler(Func<HttpRequestMessage, HttpResponseMessage> responseFactory)
-            {
-                _responseFactory = responseFactory;
-            }
-
-            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-            {
-                return Task.FromResult(_responseFactory(request));
-            }
         }
     }
 }
