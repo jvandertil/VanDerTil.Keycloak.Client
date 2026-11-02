@@ -260,6 +260,62 @@ public class KeycloakProvisioningService : IHostedService
 builder.Services.AddHostedService<KeycloakProvisioningService>();
 ```
 
+## Groups, restricted roles, and session policies
+
+```csharp
+config.AddRealm("my-app", realm =>
+{
+    realm.Enabled();
+    // These settings affect every client in this realm. Choose them deliberately.
+    realm.WithRefreshTokenRotation(true, maxReuse: 0);
+    realm.WithSsoSessionIdleTimeout(TimeSpan.FromMinutes(45));
+    realm.WithSsoSessionMaxLifespan(TimeSpan.FromHours(9));
+
+    string[] permissions = ["Activity.View", "Activity.Manage"];
+    realm.AddClient("admin-web", client =>
+    {
+        client.Confidential().WithStandardFlow().WithPkceS256();
+        client.WithSecret(clientSecret); // Supply from environment configuration or a secret store.
+        client.WithRedirectUri(signInCallback);
+        client.WithPostLogoutRedirectUri(signOutCallback);
+        client.WithFullScopeAllowed(false);
+        foreach (var permission in permissions) client.AddRole(permission);
+        client.WithClientRoleScope("admin-web", permissions);
+        client.AddProtocolMapper(ProtocolMapperBuilder.UserClientRolesToClaim("application-roles", "roles")
+            .WithConfig("usermodel.clientRoleMapping.clientId", "admin-web")
+            .WithConfig("id.token.claim", "true")
+            .WithConfig("multivalued", "true"));
+        client.WithRefreshTokens(true);
+        client.WithAccessTokenLifespan(TimeSpan.FromMinutes(5));
+        client.WithClientSessionIdleTimeout(TimeSpan.FromMinutes(35));
+        client.WithClientSessionMaxLifespan(TimeSpan.FromHours(8));
+    });
+    realm.AddGroup("Developer", group => group.WithClientRoles("admin-web", permissions));
+    // The caller owns environment checks and explicit seed opt-in.
+    if (isLocalDevelopment && seedEnabled)
+        realm.AddUser("developer", user => user.WithPassword(seedPassword).InGroup("Developer"));
+});
+```
+
+`WithClientRoles` owns the group's **direct mappings for the named client**. `WithClientRoleScope` owns the client's
+**direct scope mappings for the named role-owning client**. Both reconcile additions and removals on every run;
+passing an empty array removes all mappings in that managed slice. Omitting a call preserves its mappings.
+Realm roles, other clients' mappings, role definitions, and unrelated users are preserved. Missing referenced clients
+or roles fail explicitly. The library provisions all clients and roles before resolving scopes and groups.
+
+Groups are top-level groups, addressed by their exact path; names containing `/` are rejected. `InGroup` adds
+membership without removing existing memberships. Repeated provisioning does not duplicate the group or membership.
+It does not map group names into tokens. Restrict the built-in mapper to the application client as above; identities
+without effective scoped application roles receive no `roles` claim and must receive no application permissions.
+
+Client access-token and session settings are client-specific. Realm SSO idle/max settings cap client sessions and must
+allow the chosen client limits. Keycloak advances idle time on authentication or refresh, rather than every application
+request; include the application's refresh interval and any intended outage allowance when choosing the identity-provider
+idle ceiling. The example values illustrate these separate limits and are not application lifetime defaults.
+Rotation is a **realm-wide** Keycloak setting; other realm clients are affected. Ordinary refresh tokens remain bound to
+online sessions; this configuration does not request offline access. Durations require positive whole seconds within
+`Int32` range. Unspecified policy settings and unmodeled Keycloak representation fields survive partial updates.
+
 ## Authentication Setup Details
 
 ### Setting Up Client Credentials Authentication
@@ -304,7 +360,8 @@ builder.Services.AddKeycloakClient(builder.Configuration, options =>
 The library is designed for safe repeated execution:
 - **Create operations** check if the resource exists first
 - **Update operations** merge your desired state with existing Keycloak state
-- **Role assignments** only add missing roles (never remove)
+- **User role assignments** only add missing roles (never remove)
+- **Managed group-role and client-scope mappings** reconcile additions and removals for explicitly named clients
 
 ### Partial Updates (No Drift Detection)
 

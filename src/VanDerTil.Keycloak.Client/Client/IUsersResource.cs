@@ -9,6 +9,15 @@ internal interface IUsersResource
     [Get("/admin/realms/{realm}/users")]
     Task<List<UserRepresentation>> GetAllAsync(string realm, CancellationToken cancellationToken = default);
 
+    [Get("/admin/realms/{realm}/users?exact=true")]
+    Task<List<UserRepresentation>> FindAsync(string realm, string username, CancellationToken cancellationToken);
+
+    [Get("/admin/realms/{realm}/users/{userId}/groups")]
+    Task<List<GroupRepresentation>> GetGroupsAsync(string realm, string userId, CancellationToken cancellationToken);
+
+    [Put("/admin/realms/{realm}/users/{userId}/groups/{groupId}")]
+    Task JoinGroupAsync(string realm, string userId, string groupId, CancellationToken cancellationToken);
+
     [Post("/admin/realms/{realm}/users")]
     Task<IApiResponse> CreateAsync(string realm, [Body] UserRepresentation user, CancellationToken cancellationToken = default);
 

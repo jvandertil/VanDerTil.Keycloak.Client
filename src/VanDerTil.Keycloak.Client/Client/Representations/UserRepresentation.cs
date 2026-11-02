@@ -2,6 +2,9 @@ namespace VanDerTil.Keycloak.Client.Client.Representations;
 
 internal class UserRepresentation
 {
+    [System.Text.Json.Serialization.JsonExtensionData]
+    public Dictionary<string, System.Text.Json.JsonElement>? AdditionalProperties { get; set; }
+
     public string? Id { get; set; }
 
     public string? Username { get; set; }

@@ -9,6 +9,8 @@ namespace VanDerTil.Keycloak.Client.Configuration;
 /// </summary>
 public sealed class UserBuilder
 {
+    internal HashSet<string> Groups { get; } = new(StringComparer.Ordinal);
+
     private readonly string _username;
     private string? _firstName;
     private string? _lastName;
@@ -21,6 +23,18 @@ public sealed class UserBuilder
     internal UserBuilder(string username)
     {
         _username = username;
+    }
+
+    /// <summary>Adds membership in an existing top-level group, preserving other memberships.</summary>
+    public UserBuilder InGroup(string name)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        if (name.Contains('/', StringComparison.Ordinal))
+        {
+            throw new ArgumentException("Use a top-level group name without '/'.", nameof(name));
+        }
+        Groups.Add(name);
+        return this;
     }
 
     /// <summary>

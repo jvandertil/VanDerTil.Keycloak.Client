@@ -4,6 +4,9 @@ namespace VanDerTil.Keycloak.Client.Client.Representations;
 
 internal class ClientRepresentation
 {
+    [System.Text.Json.Serialization.JsonExtensionData]
+    public Dictionary<string, System.Text.Json.JsonElement>? AdditionalProperties { get; set; }
+
     public string? Id { get; set; }
 
     public string? ClientId { get; set; }
@@ -26,6 +29,9 @@ internal class ClientRepresentation
     /// </summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public Dictionary<string, string>? Attributes { get; set; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? FullScopeAllowed { get; set; }
 
     public bool Enabled { get; set; } = true;
 }

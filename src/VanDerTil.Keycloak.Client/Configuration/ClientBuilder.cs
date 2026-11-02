@@ -22,6 +22,10 @@ internal enum ClientType
 /// </summary>
 public sealed class ClientBuilder
 {
+    private bool? _fullScopeAllowed;
+    private readonly Dictionary<string, string> _attributes = [];
+    internal Dictionary<string, string[]> RoleScopes { get; } = new(StringComparer.Ordinal);
+
     private readonly string _clientId;
     private string? _name;
     private string? _secret;
@@ -40,6 +44,57 @@ public sealed class ClientBuilder
     public ClientBuilder(string clientId)
     {
         _clientId = clientId;
+    }
+
+    /// <summary>Sets whether all user roles are in this client's scope.</summary>
+    public ClientBuilder WithFullScopeAllowed(bool allowed)
+    {
+        _fullScopeAllowed = allowed;
+        return this;
+    }
+
+    /// <summary>Replaces direct role scope mappings for the named role-owning client. Empty removes all of that client's mappings.
+    /// Other clients and realm-role scope mappings are preserved.</summary>
+    public ClientBuilder WithClientRoleScope(string clientId, params string[] roleNames)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(clientId);
+        ArgumentNullException.ThrowIfNull(roleNames);
+        foreach (var name in roleNames)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        }
+        RoleScopes[clientId] = (string[])roleNames.Clone();
+        return this;
+    }
+
+    /// <summary>Requires S256 PKCE for authorization code flow.</summary>
+    public ClientBuilder WithPkceS256() => WithAttribute("pkce.code.challenge.method", "S256");
+
+    /// <summary>Enables or disables ordinary session-bound refresh tokens.</summary>
+    public ClientBuilder WithRefreshTokens(bool enabled) => WithAttribute("use.refresh.tokens", enabled ? "true" : "false");
+
+    /// <summary>Sets this client's access-token lifetime.</summary>
+    public ClientBuilder WithAccessTokenLifespan(TimeSpan lifetime) => WithDuration("access.token.lifespan", lifetime);
+
+    /// <summary>Sets this client's session idle timeout. Keycloak advances idle time on authentication/refresh.</summary>
+    public ClientBuilder WithClientSessionIdleTimeout(TimeSpan lifetime) => WithDuration("client.session.idle.timeout", lifetime);
+
+    /// <summary>Sets this client's maximum session duration.</summary>
+    public ClientBuilder WithClientSessionMaxLifespan(TimeSpan lifetime) => WithDuration("client.session.max.lifespan", lifetime);
+
+    private ClientBuilder WithDuration(string key, TimeSpan lifetime)
+    {
+        if (lifetime <= TimeSpan.Zero || lifetime.TotalSeconds > int.MaxValue || lifetime.Ticks % TimeSpan.TicksPerSecond != 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(lifetime), "Use a positive whole number of seconds within Int32 range.");
+        }
+        return WithAttribute(key, ((int)lifetime.TotalSeconds).ToString(System.Globalization.CultureInfo.InvariantCulture));
+    }
+
+    private ClientBuilder WithAttribute(string key, string value)
+    {
+        _attributes[key] = value;
+        return this;
     }
 
     /// <summary>
@@ -192,18 +247,17 @@ public sealed class ClientBuilder
         // Keycloak does not expose postLogoutRedirectUris as a first-class list field on the REST API.
         // Instead it is stored in the attributes bag under "post.logout.redirect.uris" with multiple
         // values concatenated by "##". See https://github.com/keycloak/keycloak/discussions/19087.
-        Dictionary<string, string>? attributes = null;
+        Dictionary<string, string>? attributes = _attributes.Count > 0 ? new(_attributes) : null;
 
         if (_postLogoutRedirectUris.Count > 0)
         {
-            attributes = new Dictionary<string, string>
-            {
-                ["post.logout.redirect.uris"] = string.Join("##", _postLogoutRedirectUris),
-            };
+            attributes ??= [];
+            attributes["post.logout.redirect.uris"] = string.Join("##", _postLogoutRedirectUris);
         }
 
         return new ClientRepresentation
         {
+            FullScopeAllowed = _fullScopeAllowed,
             ClientId = _clientId,
             Name = _name,
             Secret = _secret,
