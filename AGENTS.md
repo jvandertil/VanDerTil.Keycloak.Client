@@ -5,13 +5,22 @@ This repository is a .NET 10 class library for provisioning Keycloak realms, cli
 
 ## Build, test, and validation
 - Build from the repository root:
-  - `dotnet build VanDerTil.Keycloak.Client.slnx --nologo`
-- Test command:
-  - `dotnet test VanDerTil.Keycloak.Client.slnx --nologo`
-  - This repository currently has no test projects, so `dotnet test` reports that no tests were found.
-- If a test project is added later, run one test by name with:
-  - `dotnet test VanDerTil.Keycloak.Client.slnx --nologo --filter FullyQualifiedName~<TestName>`
-- There is no dedicated lint script or formatter workflow configured in the repo. Keep changes compatible with the repository's `.editorconfig` and make sure `dotnet build` succeeds.
+  - `dotnet build VanDerTil.Keycloak.Client.slnx --configuration Release --nologo`
+- Run the full test suite:
+  - `dotnet test VanDerTil.Keycloak.Client.slnx --configuration Release --nologo`
+- Run a focused test by fully qualified name:
+  - `dotnet test VanDerTil.Keycloak.Client.slnx --configuration Release --nologo --filter "FullyQualifiedName~<TestName>"`
+- The full test suite includes Keycloak integration tests using Testcontainers and requires an available Docker daemon. A Keycloak image may need to be downloaded the first time.
+- When changing package dependencies, update the package lock files and verify them with `dotnet restore VanDerTil.Keycloak.Client.slnx --locked-mode`.
+- Keep changes compatible with the repository's `.editorconfig` and make sure the Release build succeeds.
+
+## Testing instructions
+
+- Use the repository's MSTest and Shouldly setup. Prefer simple handwritten stubs at external boundaries when unit tests need doubles; exercise library components together rather than mocking them.
+- Organize tests by behavior or capability. Give tests descriptive names, keep setup proportionate, and extract reusable scenarios when they improve readability.
+- Test observable results, generated representations, and persisted Keycloak state instead of private methods or collaborator call sequences. Prioritize meaningful regression risks: failures, repeated provisioning, reconciliation, and preserving unmanaged state.
+- Mark tests requiring Keycloak with `[TestCategory("Integration")]` and use the real Testcontainers service. Each test must use its own realm so method-level parallel execution remains safe.
+- The Keycloak fixture is lazy and assembly-scoped: it starts on first integration-test use and is disposed in `[AssemblyCleanup]`. Keep unit-only test runs independent of Docker.
 
 ## High-level architecture
 - The solution is intentionally small: one project under `src/VanDerTil.Keycloak.Client`.

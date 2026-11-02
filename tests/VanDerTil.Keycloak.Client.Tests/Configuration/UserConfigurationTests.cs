@@ -1,140 +1,82 @@
-using System.Linq;
-
 using Microsoft.Extensions.Configuration;
 
 using VanDerTil.Keycloak.Client.Configuration;
 
 namespace VanDerTil.Keycloak.Client.Tests.Configuration;
 
+[TestClass]
 public sealed class UserConfigurationTests
 {
-    [TestClass]
-    public sealed class ConfiguringFromConfigurationSection
+    [TestMethod]
+    public void Should_ApplyTemporaryPasswordFromConfiguration()
     {
-        [TestMethod]
-        public void Should_ApplyTemporaryPassword_When_PasswordIsProvidedInSection()
-        {
-            // Arrange
-            var configuration = new ConfigurationBuilder()
-                .AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    ["User:TemporaryPassword"] = "configured-password",
-                })
-                .Build();
+        // Arrange
+        var configuration = CreateUserConfiguration("configured-password");
+        var builder = new UserBuilder("test-user").WithTemporaryPassword("code-password");
 
-            var builder = new KeycloakConfigurationBuilder();
+        // Act
+        builder.WithConfiguration(configuration);
 
-            // Act
-            builder.AddRealm("sample-app", realm =>
-            {
-                realm.AddUser("test-user", user =>
-                {
-                    user.WithTemporaryPassword("code-password");
-                    user.WithConfiguration(configuration.GetSection("User"));
-                });
-            });
-
-            // Assert
-            var realm = builder.Realms.Single();
-            var user = realm.Users.Single().Build();
-
-            var credential = user.Credentials.ShouldHaveSingleItem();
-            credential.Type.ShouldBe("password");
-            credential.Value.ShouldBe("configured-password");
-            credential.Temporary.ShouldBeTrue();
-        }
-
-        [TestMethod]
-        public void Should_NotOverridePassword_When_PasswordKeyIsAbsent()
-        {
-            // Arrange
-            var configuration = new ConfigurationBuilder()
-                .AddInMemoryCollection(new Dictionary<string, string?>())
-                .Build();
-
-            var builder = new KeycloakConfigurationBuilder();
-
-            // Act
-            builder.AddRealm("sample-app", realm =>
-            {
-                realm.AddUser("test-user", user =>
-                {
-                    user.WithTemporaryPassword("code-password");
-                    user.WithConfiguration(configuration.GetSection("User"));
-                });
-            });
-
-            // Assert
-            var user = builder.Realms.Single().Users.Single().Build();
-
-            user.Credentials.ShouldHaveSingleItem().Value.ShouldBe("code-password");
-        }
-
-        [TestMethod]
-        public void Should_NotOverridePassword_When_PasswordValueIsWhitespace()
-        {
-            // Arrange
-            var configuration = new ConfigurationBuilder()
-                .AddInMemoryCollection(new Dictionary<string, string?>
-                {
-                    ["User:TemporaryPassword"] = "   ",
-                })
-                .Build();
-
-            var builder = new KeycloakConfigurationBuilder();
-
-            // Act
-            builder.AddRealm("sample-app", realm =>
-            {
-                realm.AddUser("test-user", user =>
-                {
-                    user.WithTemporaryPassword("code-password");
-                    user.WithConfiguration(configuration.GetSection("User"));
-                });
-            });
-
-            // Assert
-            var user = builder.Realms.Single().Users.Single().Build();
-
-            user.Credentials.ShouldHaveSingleItem().Value.ShouldBe("code-password");
-        }
-
-        [TestMethod]
-        public void Should_ThrowArgumentNullException_When_ConfigurationSectionIsNull()
-        {
-            // Arrange
-            var builder = new KeycloakConfigurationBuilder();
-            UserBuilder? userBuilder = null;
-
-            builder.AddRealm("sample-app", realm =>
-            {
-                realm.AddUser("test-user", user =>
-                {
-                    userBuilder = user;
-                });
-            });
-
-            // Act & Assert
-            Should.Throw<ArgumentNullException>(() => userBuilder!.WithConfiguration(null!));
-        }
+        // Assert
+        var credential = builder.Build().Credentials.ShouldHaveSingleItem();
+        credential.Type.ShouldBe("password");
+        credential.Value.ShouldBe("configured-password");
+        credential.Temporary.ShouldBeTrue();
     }
 
-    [TestClass]
-    public sealed class WithNoPasswordConfigured
+    [TestMethod]
+    [DataRow(null)]
+    [DataRow("   ")]
+    public void Should_PreservePassword_When_ConfigurationHasNoPassword(string? configuredPassword)
     {
-        [TestMethod]
-        public void Should_NotSetCredentials()
+        // Arrange
+        var configuration = CreateUserConfiguration(configuredPassword);
+        var builder = new UserBuilder("test-user").WithTemporaryPassword("code-password");
+
+        // Act
+        builder.WithConfiguration(configuration);
+
+        // Assert
+        builder.Build().Credentials.ShouldHaveSingleItem().Value.ShouldBe("code-password");
+    }
+
+    [TestMethod]
+    public void Should_RejectNullConfigurationSection()
+    {
+        // Arrange
+        var builder = new UserBuilder("test-user");
+
+        // Act
+        Action configure = () => builder.WithConfiguration(null!);
+
+        // Assert
+        Should.Throw<ArgumentNullException>(configure);
+    }
+
+    [TestMethod]
+    public void Should_OmitCredentials_When_NoPasswordIsConfigured()
+    {
+        // Arrange
+        var builder = new UserBuilder("test-user");
+
+        // Act
+        var user = builder.Build();
+
+        // Assert
+        user.Credentials.ShouldBeNull();
+    }
+
+    private static IConfigurationSection CreateUserConfiguration(string? temporaryPassword)
+    {
+        var settings = new Dictionary<string, string?>();
+        if (temporaryPassword is not null)
         {
-            var builder = new KeycloakConfigurationBuilder();
-
-            builder.AddRealm("sample-app", realm =>
-            {
-                realm.AddUser("test-user", user => { });
-            });
-
-            var user = builder.Realms.Single().Users.Single().Build();
-
-            user.Credentials.ShouldBeNull();
+            settings["User:TemporaryPassword"] = temporaryPassword;
         }
+
+        return new ConfigurationBuilder()
+            .AddInMemoryCollection(settings)
+            .Build()
+            .GetSection("User");
     }
 }

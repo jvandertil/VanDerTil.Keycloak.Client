@@ -1,4 +1,5 @@
 using Refit;
+
 using VanDerTil.Keycloak.Client.Client.Representations;
 
 namespace VanDerTil.Keycloak.Client.Client;
