@@ -99,6 +99,7 @@ internal sealed partial class KeycloakConfigurator : IKeycloakConfigurator
 
             if (existing is null)
             {
+                representation.FullScopeAllowed ??= false;
                 var response = await clientsResource.CreateAsync(realmId, representation, cancellationToken).ConfigureAwait(false);
                 internalId = ExtractInternalIdFromLocationHeader(response, $"client '{representation.ClientId}'");
             }

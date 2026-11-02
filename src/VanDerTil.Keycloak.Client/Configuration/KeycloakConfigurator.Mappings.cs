@@ -57,12 +57,26 @@ internal sealed partial class KeycloakConfigurator
         var resource = _clientFactory.Create<IClientScopeMappingsResource>(token);
         foreach (var client in clients)
         {
-            if (client.RoleScopes.Count == 0)
+            if (client.RoleScopes.Count == 0 && client.RealmRoleScopes is null)
             {
                 continue;
             }
             var allClients = await _clientFactory.Create<IClientsResource>(token).GetAllAsync(realm, ct).ConfigureAwait(false);
             var clientId = allClients.Single(c => c.ClientId == client.Build().ClientId).Id!;
+            if (client.RealmRoleScopes is { } realmRoleNames)
+            {
+                var available = await _clientFactory.Create<IRolesResource>(token).GetAllAsync(realm, ct).ConfigureAwait(false);
+                var desired = new List<RoleRepresentation>();
+                foreach (var name in realmRoleNames.Distinct(StringComparer.Ordinal))
+                {
+                    desired.Add(available.SingleOrDefault(r => r.Name == name)
+                        ?? throw new InvalidOperationException($"Realm role '{name}' not found in realm '{realm}'."));
+                }
+                var current = await resource.GetRealmRolesAsync(realm, clientId, ct).ConfigureAwait(false);
+                await ReconcileMappingsAsync(current, desired,
+                    roles => resource.RemoveRealmRolesAsync(realm, clientId, roles, ct),
+                    roles => resource.AddRealmRolesAsync(realm, clientId, roles, ct)).ConfigureAwait(false);
+            }
             foreach (var (roleClient, names) in client.RoleScopes)
             {
                 var (roleClientId, desired) = await ResolveRolesAsync(realm, roleClient, names, token, ct).ConfigureAwait(false);

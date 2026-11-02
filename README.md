@@ -262,6 +262,11 @@ builder.Services.AddHostedService<KeycloakProvisioningService>();
 
 ## Groups, restricted roles, and session policies
 
+New clients created by this library default to `Full Scope Allowed` disabled, unlike Keycloak's usual default.
+Configure the role scope mappings and protocol mappers needed by each application; users must also hold those roles.
+This may change role claims for newly provisioned clients. Existing clients retain their setting unless explicitly
+changed with `WithFullScopeAllowed`. Use `WithFullScopeAllowed(true)` to opt into Keycloak's broad role scope.
+
 ```csharp
 config.AddRealm("my-app", realm =>
 {
@@ -281,6 +286,7 @@ config.AddRealm("my-app", realm =>
         client.WithFullScopeAllowed(false);
         foreach (var permission in permissions) client.AddRole(permission);
         client.WithClientRoleScope("admin-web", permissions);
+        // For realm roles, use client.WithRealmRoleScope("realm-role");
         client.AddProtocolMapper(ProtocolMapperBuilder.UserClientRolesToClaim("application-roles", "roles")
             .WithConfig("usermodel.clientRoleMapping.clientId", "admin-web")
             .WithConfig("id.token.claim", "true")
@@ -302,6 +308,10 @@ config.AddRealm("my-app", realm =>
 passing an empty array removes all mappings in that managed slice. Omitting a call preserves its mappings.
 Realm roles, other clients' mappings, role definitions, and unrelated users are preserved. Missing referenced clients
 or roles fail explicitly. The library provisions all clients and roles before resolving scopes and groups.
+
+`WithRealmRoleScope` similarly owns the client's direct realm-role scope mappings: it replaces that set,
+an empty call removes it, and omitting the call preserves it. It does not affect client-role mappings or mappings
+in linked client scopes. Define the realm roles separately and assign them to users as needed.
 
 Groups are top-level groups, addressed by their exact path; names containing `/` are rejected. `InGroup` adds
 membership without removing existing memberships. Repeated provisioning does not duplicate the group or membership.

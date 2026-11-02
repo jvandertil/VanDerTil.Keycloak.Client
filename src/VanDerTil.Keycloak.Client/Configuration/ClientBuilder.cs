@@ -25,6 +25,7 @@ public sealed class ClientBuilder
     private bool? _fullScopeAllowed;
     private readonly Dictionary<string, string> _attributes = [];
     internal Dictionary<string, string[]> RoleScopes { get; } = new(StringComparer.Ordinal);
+    internal string[]? RealmRoleScopes { get; private set; }
 
     private readonly string _clientId;
     private string? _name;
@@ -46,15 +47,30 @@ public sealed class ClientBuilder
         _clientId = clientId;
     }
 
-    /// <summary>Sets whether all user roles are in this client's scope.</summary>
+    /// <summary>Controls whether all roles are in this client's role scope.</summary>
+    /// <param name="allowed">When <see langword="true"/>, all roles are in scope. When <see langword="false"/>,
+    /// role scope mappings restrict which roles are in scope.</param>
+    /// <returns>The current builder.</returns>
+    /// <remarks>
+    /// Roles in scope can appear in tokens only when the user has those roles and applicable protocol mappers
+    /// include them. Restricting the scope does not grant roles to users. Use <see cref="WithClientRoleScope"/>
+    /// to configure direct mappings for a role-owning client; linked client scopes can also contribute mappings.
+    /// New clients default to <see langword="false"/> when this method is omitted. Existing clients retain
+    /// their setting unless it is explicitly specified. Keycloak itself normally defaults new clients to
+    /// <see langword="true"/>. Changing this setting can change token claims and application authorization.
+    /// </remarks>
     public ClientBuilder WithFullScopeAllowed(bool allowed)
     {
         _fullScopeAllowed = allowed;
         return this;
     }
 
-    /// <summary>Replaces direct role scope mappings for the named role-owning client. Empty removes all of that client's mappings.
-    /// Other clients and realm-role scope mappings are preserved.</summary>
+    /// <summary>Replaces direct role scope mappings for the named role-owning client.</summary>
+    /// <param name="clientId">The client that owns the roles, which may be this client or another client.</param>
+    /// <param name="roleNames">Roles to include in the direct scope; an empty array removes those mappings.</param>
+    /// <returns>The current builder.</returns>
+    /// <remarks>Other clients' mappings, realm-role mappings, and mappings from linked client scopes are preserved.
+    /// These mappings restrict effective roles only when full scope is disabled; they do not assign roles to users.</remarks>
     public ClientBuilder WithClientRoleScope(string clientId, params string[] roleNames)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(clientId);
@@ -67,10 +83,31 @@ public sealed class ClientBuilder
         return this;
     }
 
+    /// <summary>Replaces this client's direct realm-role scope mappings.</summary>
+    /// <param name="roleNames">Realm roles to include in the direct scope; an empty array removes all direct realm-role mappings.</param>
+    /// <returns>The current builder.</returns>
+    /// <remarks>Omitting this call preserves existing mappings. Client-role mappings and mappings from linked client scopes
+    /// are preserved. The roles must exist; mappings do not assign them to users. Full scope must be disabled for
+    /// role scope mappings to restrict effective roles.</remarks>
+    public ClientBuilder WithRealmRoleScope(params string[] roleNames)
+    {
+        ArgumentNullException.ThrowIfNull(roleNames);
+        foreach (var name in roleNames)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        }
+        RealmRoleScopes = (string[])roleNames.Clone();
+        return this;
+    }
+
     /// <summary>Requires S256 PKCE for authorization code flow.</summary>
     public ClientBuilder WithPkceS256() => WithAttribute("pkce.code.challenge.method", "S256");
 
-    /// <summary>Enables or disables ordinary session-bound refresh tokens.</summary>
+    /// <summary>Enables or disables ordinary session-bound refresh tokens for this client.</summary>
+    /// <param name="enabled">Whether Keycloak may issue refresh tokens for the client.</param>
+    /// <returns>The current builder.</returns>
+    /// <remarks>When omitted, Keycloak's default applies to new clients and existing settings are preserved.
+    /// This setting does not request offline access or configure realm-wide refresh-token rotation.</remarks>
     public ClientBuilder WithRefreshTokens(bool enabled) => WithAttribute("use.refresh.tokens", enabled ? "true" : "false");
 
     /// <summary>Sets this client's access-token lifetime.</summary>
