@@ -1,4 +1,4 @@
-# Copilot instructions for VanDerTil.Keycloak.Client
+# Agent instructions for VanDerTil.Keycloak.Client
 
 ## Project purpose
 This repository is a .NET 10 class library for provisioning Keycloak realms, clients, users, roles, and protocol mappers through the Keycloak admin API.
