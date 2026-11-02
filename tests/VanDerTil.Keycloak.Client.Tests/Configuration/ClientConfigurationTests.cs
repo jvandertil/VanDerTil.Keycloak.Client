@@ -7,6 +7,21 @@ namespace VanDerTil.Keycloak.Client.Tests.Configuration;
 [TestClass]
 public sealed class ClientConfigurationTests
 {
+    [TestMethod]
+    public void RealmRoleScope_ValidatesAndCopiesNames()
+    {
+        var builder = new ClientBuilder("web");
+        builder.RealmRoleScopes.ShouldBeNull();
+        string[] names = ["reader"];
+        builder.WithRealmRoleScope(names);
+        names[0] = "changed";
+        builder.RealmRoleScopes.ShouldBe(new[] { "reader" });
+        Should.Throw<ArgumentNullException>(() => builder.WithRealmRoleScope(null!));
+        Should.Throw<ArgumentException>(() => builder.WithRealmRoleScope(" "));
+        builder.WithRealmRoleScope();
+        builder.RealmRoleScopes.ShouldBeEmpty();
+    }
+
     [TestClass]
     public sealed class ConfiguringFromConfigurationSection
     {

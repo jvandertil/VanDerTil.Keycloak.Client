@@ -5,7 +5,7 @@ using VanDerTil.Keycloak.Client.Client.Representations;
 
 namespace VanDerTil.Keycloak.Client.Configuration;
 
-internal sealed class KeycloakConfigurator : IKeycloakConfigurator
+internal sealed partial class KeycloakConfigurator : IKeycloakConfigurator
 {
     private readonly RefitClientFactory _clientFactory;
     private readonly OpenIdConnectAccessTokenProvider _accessTokenProvider;
@@ -55,6 +55,8 @@ internal sealed class KeycloakConfigurator : IKeycloakConfigurator
 
         await ConfigureRolesAsync(realmId, realmBuilder.Roles, accessToken, cancellationToken).ConfigureAwait(false);
         await ConfigureClientsAsync(realmId, realmBuilder.Clients, accessToken, cancellationToken).ConfigureAwait(false);
+        await ConfigureClientScopesAsync(realmId, realmBuilder.Clients, accessToken, cancellationToken).ConfigureAwait(false);
+        await ConfigureGroupsAsync(realmId, realmBuilder.Groups, accessToken, cancellationToken).ConfigureAwait(false);
         await ConfigureUsersAsync(realmId, realmBuilder.Users, accessToken, cancellationToken).ConfigureAwait(false);
     }
 
@@ -97,6 +99,7 @@ internal sealed class KeycloakConfigurator : IKeycloakConfigurator
 
             if (existing is null)
             {
+                representation.FullScopeAllowed ??= false;
                 var response = await clientsResource.CreateAsync(realmId, representation, cancellationToken).ConfigureAwait(false);
                 internalId = ExtractInternalIdFromLocationHeader(response, $"client '{representation.ClientId}'");
             }
@@ -183,7 +186,6 @@ internal sealed class KeycloakConfigurator : IKeycloakConfigurator
         var clientsResource = _clientFactory.Create<IClientsResource>(accessToken);
         var clientRolesResource = _clientFactory.Create<IClientRolesResource>(accessToken);
 
-        var existingUsers = await usersResource.GetAllAsync(realmId, cancellationToken).ConfigureAwait(false);
         var allRoles = await rolesResource.GetAllAsync(realmId, cancellationToken).ConfigureAwait(false);
 
         // Fetched lazily — only when the first user with client roles is encountered.
@@ -192,7 +194,8 @@ internal sealed class KeycloakConfigurator : IKeycloakConfigurator
         foreach (var userBuilder in users)
         {
             var representation = userBuilder.Build();
-            var existing = existingUsers.FirstOrDefault(u => u.Username == representation.Username);
+            var matches = await usersResource.FindAsync(realmId, representation.Username!, cancellationToken).ConfigureAwait(false);
+            var existing = matches.SingleOrDefault(u => u.Username == representation.Username);
             string? userId = existing?.Id;
 
             if (existing is null)
@@ -205,6 +208,12 @@ internal sealed class KeycloakConfigurator : IKeycloakConfigurator
                 userId = existing.Id ?? throw new InvalidOperationException($"The user '{representation.Username}' does not have a Keycloak internal id.");
                 var mergedRepresentation = MergeUser(existing, representation);
                 await usersResource.UpdateAsync(realmId, userId, mergedRepresentation, cancellationToken).ConfigureAwait(false);
+            }
+
+            foreach (var groupName in userBuilder.Groups)
+            {
+                var groupId = await FindGroupIdAsync(realmId, groupName, accessToken, cancellationToken).ConfigureAwait(false);
+                await usersResource.JoinGroupAsync(realmId, userId!, groupId, cancellationToken).ConfigureAwait(false);
             }
 
             if (userBuilder.Roles.Count > 0)
@@ -295,8 +304,13 @@ internal sealed class KeycloakConfigurator : IKeycloakConfigurator
     {
         return new RealmRepresentation
         {
+            AdditionalProperties = existing.AdditionalProperties,
             Id = existing.Id ?? desired.Id,
             Realm = existing.Realm ?? desired.Realm,
+            SsoSessionIdleTimeout = desired.SsoSessionIdleTimeout ?? existing.SsoSessionIdleTimeout,
+            SsoSessionMaxLifespan = desired.SsoSessionMaxLifespan ?? existing.SsoSessionMaxLifespan,
+            RevokeRefreshToken = desired.RevokeRefreshToken ?? existing.RevokeRefreshToken,
+            RefreshTokenMaxReuse = desired.RefreshTokenMaxReuse ?? existing.RefreshTokenMaxReuse,
             DisplayName = desired.DisplayName ?? existing.DisplayName,
             Enabled = realmBuilder.EnabledValue ?? existing.Enabled,
         };
@@ -322,12 +336,14 @@ internal sealed class KeycloakConfigurator : IKeycloakConfigurator
 
         return new ClientRepresentation
         {
+            AdditionalProperties = existing.AdditionalProperties,
             Id = existing.Id ?? desired.Id,
             ClientId = existing.ClientId ?? desired.ClientId,
             Name = desired.Name ?? existing.Name,
             // Keycloak does not return client secrets in GET responses, so existing.Secret is always null.
             // Only include Secret in the update payload when explicitly provided.
             Secret = string.IsNullOrWhiteSpace(desired.Secret) ? null : desired.Secret,
+            FullScopeAllowed = desired.FullScopeAllowed ?? existing.FullScopeAllowed,
             PublicClient = clientBuilder.PublicClientValue ?? existing.PublicClient,
             StandardFlowEnabled = clientBuilder.StandardFlowEnabledValue ?? existing.StandardFlowEnabled,
             RedirectUris = desired.RedirectUris is { Count: > 0 } ? desired.RedirectUris : existing.RedirectUris,
@@ -378,6 +394,7 @@ internal sealed class KeycloakConfigurator : IKeycloakConfigurator
     {
         return new UserRepresentation
         {
+            AdditionalProperties = existing.AdditionalProperties,
             Id = existing.Id ?? desired.Id,
             Username = existing.Username ?? desired.Username,
             FirstName = desired.FirstName ?? existing.FirstName,

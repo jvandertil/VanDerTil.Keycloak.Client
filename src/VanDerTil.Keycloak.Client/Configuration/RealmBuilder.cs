@@ -10,6 +10,13 @@ public sealed class RealmBuilder
     private readonly string _realmId;
     private string? _displayName;
     private bool? _enabled;
+    private int? _ssoSessionIdleTimeout;
+    private int? _ssoSessionMaxLifespan;
+
+    private bool? _revokeRefreshToken;
+    private int? _refreshTokenMaxReuse;
+    internal List<GroupBuilder> Groups { get; } = [];
+
     private readonly List<ClientBuilder> _clients = [];
     private readonly List<UserBuilder> _users = [];
     private readonly List<string> _roles = [];
@@ -17,6 +24,53 @@ public sealed class RealmBuilder
     internal RealmBuilder(string realmId)
     {
         _realmId = realmId;
+    }
+
+    /// <summary>Sets the realm SSO idle ceiling. Client idle limits cannot exceed this limit.</summary>
+    public RealmBuilder WithSsoSessionIdleTimeout(TimeSpan lifetime)
+    {
+        _ssoSessionIdleTimeout = ToSeconds(lifetime);
+        return this;
+    }
+
+    /// <summary>Sets the realm SSO maximum lifespan ceiling for client sessions.</summary>
+    public RealmBuilder WithSsoSessionMaxLifespan(TimeSpan lifetime)
+    {
+        _ssoSessionMaxLifespan = ToSeconds(lifetime);
+        return this;
+    }
+
+    private static int ToSeconds(TimeSpan lifetime)
+    {
+        if (lifetime <= TimeSpan.Zero || lifetime.TotalSeconds > int.MaxValue || lifetime.Ticks % TimeSpan.TicksPerSecond != 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(lifetime), "Use a positive whole number of seconds within Int32 range.");
+        }
+        return (int)lifetime.TotalSeconds;
+    }
+
+    /// <summary>Defines a top-level group. Existing members and unrelated role mappings are preserved.</summary>
+    public RealmBuilder AddGroup(string name, Action<GroupBuilder> configure)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        if (name.Contains('/', StringComparison.Ordinal))
+        {
+            throw new ArgumentException("Use a top-level group name without '/'.", nameof(name));
+        }
+        ArgumentNullException.ThrowIfNull(configure);
+        var group = new GroupBuilder(name);
+        configure(group);
+        Groups.Add(group);
+        return this;
+    }
+
+    /// <summary>Sets realm-wide refresh-token rotation. This affects every client in the realm.</summary>
+    public RealmBuilder WithRefreshTokenRotation(bool enabled, int maxReuse = 0)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(maxReuse);
+        _revokeRefreshToken = enabled;
+        _refreshTokenMaxReuse = maxReuse;
+        return this;
     }
 
     /// <summary>
@@ -100,6 +154,10 @@ public sealed class RealmBuilder
     {
         return new RealmRepresentation
         {
+            SsoSessionIdleTimeout = _ssoSessionIdleTimeout,
+            SsoSessionMaxLifespan = _ssoSessionMaxLifespan,
+            RevokeRefreshToken = _revokeRefreshToken,
+            RefreshTokenMaxReuse = _refreshTokenMaxReuse,
             Id = _realmId,
             Realm = _realmId,
             DisplayName = _displayName,
