@@ -16,30 +16,11 @@ This repository is a .NET 10 class library for provisioning Keycloak realms, cli
 
 ## Testing instructions
 
-### Framework and assertions
-- Use MSTest through the repository's `MSTest.Sdk` and Microsoft Testing Platform configuration in `global.json`.
-- Use Shouldly for assertions. Prefer focused assertions such as `ShouldBe`, `ShouldContain`, and `ShouldHaveSingleItem`; use `Should.Throw<TException>` and `Should.ThrowAsync<TException>` for exception behavior instead of raw `Assert.*` where an equivalent exists.
-- Do not add Moq or FluentAssertions. Prefer small handwritten stubs or spies at external system boundaries, and use NSubstitute sparingly only when it makes a boundary test clearer.
-
-### Naming and structure
-- Organize tests by feature or capability, rather than mirroring every implementation class. Keep the test folder structure aligned with the area under test, such as configuration behavior and Keycloak integration workflows.
-- Name test classes for the capability or scenario. Use nested `[TestClass]` classes with noun-phrase names when several tests share a scenario context; a single-test class does not need an extra nesting level.
-- Name test methods `Should_<ExpectedBehavior>`. Append `_When_<Condition>` only to distinguish sibling outcomes when the scenario context does not already make the condition clear.
-- Structure each test as Arrange–Act–Assert and label the sections with `// Arrange`, `// Act`, and `// Assert`. Each test should tell one behavior story; several assertions are appropriate when they describe outcomes of that same behavior.
-- Extract repeated setup into private helpers or shared scenario setup. Use test data builders with realistic defaults when constructing non-trivial objects across tests, and override only the values relevant to each scenario.
-
-### Test value and boundaries
-- Prefer tests that protect meaningful behavior at a maintenance cost justified by the regression risk. There is no required coverage percentage.
-- Assert observable results, built representations, and persisted Keycloak state. Do not test private methods, expose internals for tests, duplicate Keycloak's own behavior, or bind tests to implementation details and collaborator call sequences.
-- Keep collaborators within this library real for unit tests. Use test doubles at external boundaries; use the real Keycloak service for provisioning integration tests.
-- Cover important success, failure, idempotency, reconciliation, and preservation behavior without making a large number of end-to-end tests. Keep framework and HTTP plumbing thin and test complex decisions through public behavior.
-
-### Keycloak integration tests
-- Mark tests that require external infrastructure with `[TestCategory("Integration")]`.
-- Use the real Keycloak container provided by Testcontainers. The full suite therefore requires Docker; do not replace Keycloak with an in-memory substitute for provisioning integration tests.
-- Give each test a unique realm identifier and avoid depending on test order or shared realm state. Method-level parallel execution is enabled, so tests must remain isolated when they run concurrently.
-- Match fixture cleanup to its lifetime: use `[TestCleanup]` for per-test resources, `[ClassCleanup]` for class-scoped resources, and `[AssemblyCleanup]` for assembly-scoped resources. Pair assembly-scoped resources with `[AssemblyInitialize]`.
-- The current Keycloak container is class-scoped, so initialize it once for the integration test class and dispose it and its service provider during `[ClassCleanup]`. Move it to assembly scope only if multiple integration classes benefit from sharing startup, and ensure focused unit-test runs do not unnecessarily start Docker.
+- Use the repository's MSTest and Shouldly setup. Prefer simple handwritten stubs at external boundaries when unit tests need doubles; exercise library components together rather than mocking them.
+- Organize tests by behavior or capability. Give tests descriptive names, keep setup proportionate, and extract reusable scenarios when they improve readability.
+- Test observable results, generated representations, and persisted Keycloak state instead of private methods or collaborator call sequences. Prioritize meaningful regression risks: failures, repeated provisioning, reconciliation, and preserving unmanaged state.
+- Mark tests requiring Keycloak with `[TestCategory("Integration")]` and use the real Testcontainers service. Each test must use its own realm so method-level parallel execution remains safe.
+- The Keycloak fixture is lazy and assembly-scoped: it starts on first integration-test use and is disposed in `[AssemblyCleanup]`. Keep unit-only test runs independent of Docker.
 
 ## High-level architecture
 - The solution is intentionally small: one project under `src/VanDerTil.Keycloak.Client`.
