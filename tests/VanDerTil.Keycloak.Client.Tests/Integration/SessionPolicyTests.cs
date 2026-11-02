@@ -134,4 +134,5 @@ public sealed class SessionPolicyTests
         realm.WithRefreshTokenRotation(true);
         realm.WithSsoSessionIdleTimeout(TimeSpan.FromMinutes(40));
         realm.WithSsoSessionMaxLifespan(TimeSpan.FromHours(9));
-    }}
+    }
+}

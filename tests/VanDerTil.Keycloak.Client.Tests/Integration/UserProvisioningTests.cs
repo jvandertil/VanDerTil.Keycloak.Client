@@ -41,7 +41,8 @@ public sealed class UserProvisioningTests
         var user = (await users.GetAllAsync(realmId)).Where(user => user.Username == SeedUsername).ShouldHaveSingleItem();
         (await users.GetClientRoleMappingsAsync(realmId, user.Id!, client.Id!, CancellationToken.None))
             .Select(role => role.Name).ShouldBe(new[] { "admin" });
-    }    [TestMethod]
+    }
+    [TestMethod]
     public async Task Should_PreserveUnmanagedUsersAndMemberships_When_ConfiguringUserAgain()
     {
         // Arrange

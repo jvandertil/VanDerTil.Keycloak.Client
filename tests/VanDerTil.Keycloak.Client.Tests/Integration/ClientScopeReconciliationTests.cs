@@ -118,4 +118,5 @@ public sealed class ClientScopeReconciliationTests
         var scopes = await _fixture.CreateClientAsync<IClientScopeMappingsResource>();
         return (await scopes.GetAsync(realmId, client.Id!, roleClient.Id!, CancellationToken.None))
             .Select(role => role.Name).Order().ToArray();
-    }}
+    }
+}
