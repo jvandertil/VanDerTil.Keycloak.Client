@@ -38,7 +38,7 @@ public sealed class ClientProvisioningTests
         // Assert
         var client = await _fixture.GetClientAsync(realmId, ClientId);
         client.PublicClient.ShouldBeFalse();
-        client.FullScopeAllowed.ShouldBeFalse();
+        client.FullScopeAllowed.ShouldNotBeNull().ShouldBeFalse();
         client.StandardFlowEnabled.ShouldBeTrue();
         client.RedirectUris.ShouldNotBeNull().ShouldBe(new[] { RedirectUri });
         client.Attributes.ShouldNotBeNull()["post.logout.redirect.uris"].Split("##").ShouldBe(new[] { PostLogoutRedirectUri });
