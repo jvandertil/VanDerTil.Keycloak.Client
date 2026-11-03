@@ -308,6 +308,13 @@ public sealed class ClientBuilder
         return this;
     }
 
+    /// <summary>Adds allowed redirect URIs for sign-in responses.</summary>
+    /// <param name="uris">The redirect URIs to add.</param>
+    /// <returns>The current builder.</returns>
+    /// <remarks>Use <see cref="AddRedirectUris(string[])"/>.</remarks>
+    [Obsolete("Use AddRedirectUris instead.")]
+    public ClientBuilder WithRedirectUris(params string[] uris) => AddRedirectUris(uris);
+
     /// <summary>Adds allowed post-logout redirect URIs.</summary>
     /// <param name="uris">The post-logout redirect URIs to add.</param>
     /// <returns>The current builder.</returns>
@@ -324,6 +331,13 @@ public sealed class ClientBuilder
         }
         return this;
     }
+
+    /// <summary>Adds allowed post-logout redirect URIs.</summary>
+    /// <param name="uris">The post-logout redirect URIs to add.</param>
+    /// <returns>The current builder.</returns>
+    /// <remarks>Use <see cref="AddPostLogoutRedirectUris(string[])"/>.</remarks>
+    [Obsolete("Use AddPostLogoutRedirectUris instead.")]
+    public ClientBuilder WithPostLogoutRedirectUris(params string[] uris) => AddPostLogoutRedirectUris(uris);
 
     /// <summary>Defines client-level roles to ensure exist.</summary>
     /// <param name="roleNames">The client role names to add.</param>
