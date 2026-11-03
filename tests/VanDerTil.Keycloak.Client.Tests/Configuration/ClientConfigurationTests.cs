@@ -121,6 +121,81 @@ public sealed class ClientConfigurationTests
         mapper.Config.ShouldNotBeNull();
         mapper.Config["claim.name"].ShouldBe("roles");
         mapper.Config["multivalued"].ShouldBe("true");
+        mapper.Config["jsonType.label"].ShouldBe("String");
+        mapper.Config["access.token.claim"].ShouldBe("true");
+        mapper.Config["id.token.claim"].ShouldBe("true");
+        mapper.Config["userinfo.token.claim"].ShouldBe("true");
+    }
+
+    [TestMethod]
+    public void Should_AccumulateBulkValuesWithSingularConfiguration()
+    {
+        // Arrange
+        var builder = new ClientBuilder("web")
+            .WithRedirectUri("https://first.example/signin")
+            .WithPostLogoutRedirectUri("https://first.example/signout")
+            .AddRole("reader");
+        string[] roles = ["writer", "scheduler"];
+
+        // Act
+        builder.WithRedirectUris("https://second.example/signin", "https://third.example/signin")
+            .WithPostLogoutRedirectUris("https://second.example/signout", "https://third.example/signout")
+            .AddRoles(roles)
+            .WithRedirectUris()
+            .WithPostLogoutRedirectUris()
+            .AddRoles();
+        roles[0] = "changed";
+        var client = builder.Build();
+
+        // Assert
+        client.RedirectUris.ShouldBe(new[]
+        {
+            "https://first.example/signin", "https://second.example/signin", "https://third.example/signin"
+        });
+        client.Attributes.ShouldNotBeNull()["post.logout.redirect.uris"].ShouldBe(
+            "https://first.example/signout##https://second.example/signout##https://third.example/signout");
+        builder.Roles.ShouldBe(new[] { "reader", "writer", "scheduler" });
+    }
+
+    [TestMethod]
+    public void Should_RejectNullBulkCollections()
+    {
+        // Arrange
+        var builder = new ClientBuilder("web");
+
+        // Act / Assert
+        Should.Throw<ArgumentNullException>(() => builder.WithRedirectUris(null!));
+        Should.Throw<ArgumentNullException>(() => builder.WithPostLogoutRedirectUris(null!));
+        Should.Throw<ArgumentNullException>(() => builder.AddRoles(null!));
+    }
+
+    [TestMethod]
+    [DataRow(null)]
+    [DataRow("")]
+    [DataRow(" ")]
+    public void Should_ValidateEachBulkValue(string? value)
+    {
+        // Arrange
+        var builder = new ClientBuilder("web");
+
+        // Act / Assert
+        Should.Throw<ArgumentException>(() => builder.WithRedirectUris([value!]));
+        Should.Throw<ArgumentException>(() => builder.WithPostLogoutRedirectUris([value!]));
+        Should.Throw<ArgumentException>(() => builder.AddRoles([value!]));
+    }
+
+    [TestMethod]
+    public void Should_AllowOverridingMapperFactoryDefaults()
+    {
+        // Arrange
+        var builder = ProtocolMapperBuilder.UserClientRolesToClaim("client-roles", "roles");
+
+        // Act
+        var mapper = builder.WithConfig("id.token.claim", "false").Build();
+
+        // Assert
+        mapper.Config.ShouldNotBeNull()["id.token.claim"].ShouldBe("false");
+        mapper.Config["userinfo.token.claim"].ShouldBe("true");
     }
 
     [TestMethod]

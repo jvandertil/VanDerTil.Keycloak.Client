@@ -273,6 +273,57 @@ public sealed class ClientBuilder
         return this;
     }
 
+    /// <summary>Adds allowed redirect URIs for sign-in responses.</summary>
+    /// <param name="uris">The redirect URIs to add.</param>
+    /// <returns>The current builder.</returns>
+    /// <remarks>Accumulates values with previous singular or bulk calls. An empty array adds nothing;
+    /// it does not clear the configured or persisted URI list.</remarks>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="uris"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when a URI is null, empty, or whitespace.</exception>
+    public ClientBuilder WithRedirectUris(params string[] uris)
+    {
+        ArgumentNullException.ThrowIfNull(uris);
+        foreach (var uri in uris)
+        {
+            WithRedirectUri(uri);
+        }
+        return this;
+    }
+
+    /// <summary>Adds allowed post-logout redirect URIs.</summary>
+    /// <param name="uris">The post-logout redirect URIs to add.</param>
+    /// <returns>The current builder.</returns>
+    /// <remarks>Accumulates values with previous singular or bulk calls. An empty array adds nothing;
+    /// it does not clear the configured or persisted URI list.</remarks>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="uris"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when a URI is null, empty, or whitespace.</exception>
+    public ClientBuilder WithPostLogoutRedirectUris(params string[] uris)
+    {
+        ArgumentNullException.ThrowIfNull(uris);
+        foreach (var uri in uris)
+        {
+            WithPostLogoutRedirectUri(uri);
+        }
+        return this;
+    }
+
+    /// <summary>Defines client-level roles to ensure exist.</summary>
+    /// <param name="roleNames">The client role names to add.</param>
+    /// <returns>The current builder.</returns>
+    /// <remarks>Accumulates roles with previous singular or bulk calls. An empty array adds nothing.
+    /// Omitting a role does not delete its existing Keycloak definition.</remarks>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="roleNames"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when a role name is null, empty, or whitespace.</exception>
+    public ClientBuilder AddRoles(params string[] roleNames)
+    {
+        ArgumentNullException.ThrowIfNull(roleNames);
+        foreach (var roleName in roleNames)
+        {
+            AddRole(roleName);
+        }
+        return this;
+    }
+
     internal bool? PublicClientValue => _publicClient;
     internal bool? StandardFlowEnabledValue => _standardFlow;
     internal bool? EnabledValue => _enabled;
