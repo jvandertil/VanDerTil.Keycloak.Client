@@ -35,8 +35,7 @@ public sealed class ProtocolMapperBuilder
 
     /// <summary>
     /// Creates a mapper that maps a user's client roles to a token claim.
-    /// Use this to make Keycloak client roles available as a standard claim so that
-    /// ASP.NET Core role-based authorization (<c>[Authorize(Roles = "...")]</c>) works out of the box.
+    /// Applications must configure their role claim type to match the chosen claim name.
     /// </summary>
     /// <param name="name">The display name of the mapper as shown in Keycloak.</param>
     /// <param name="claimName">The token claim name to populate (e.g. <c>"roles"</c>).</param>
@@ -44,6 +43,16 @@ public sealed class ProtocolMapperBuilder
     /// <exception cref="ArgumentException">
     /// Thrown when <paramref name="name"/> or <paramref name="claimName"/> is <see langword="null"/>, empty, or whitespace.
     /// </exception>
+    /// <remarks>
+    /// Uses Keycloak's built-in <c>oidc-usermodel-client-role-mapper</c> with <c>claim.name</c> set to
+    /// <paramref name="claimName"/>, <c>jsonType.label=String</c>, and <c>multivalued=true</c>.
+    /// Inclusion in access tokens, ID tokens, and UserInfo is explicitly enabled through
+    /// <c>access.token.claim</c>, <c>id.token.claim</c>, and <c>userinfo.token.claim</c>.
+    /// These are factory defaults, not defaults inherited from Keycloak; override entries with <see cref="WithConfig"/>.
+    /// The factory does not restrict the role-owning client. Set <c>usermodel.clientRoleMapping.clientId</c>
+    /// with <see cref="WithConfig"/> to select one client's roles. Effective roles still depend on
+    /// the user's assignments and the requesting client's role scope; the mapper grants no roles.
+    /// </remarks>
     public static ProtocolMapperBuilder UserClientRolesToClaim(string name, string claimName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(name);
