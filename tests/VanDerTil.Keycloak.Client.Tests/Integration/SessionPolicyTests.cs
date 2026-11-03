@@ -122,7 +122,7 @@ public sealed class SessionPolicyTests
 
     private static void ConfigureClientPolicy(ClientBuilder client)
     {
-        client.Confidential().WithSecret(ClientSecret).WithStandardFlow().WithRedirectUri(RedirectUri);
+        client.Confidential().WithSecret(ClientSecret).WithStandardFlow().AddRedirectUri(RedirectUri);
         client.WithFullScopeAllowed(false).WithPkceS256().WithRefreshTokens(true);
         client.WithAccessTokenLifespan(TimeSpan.FromMinutes(5));
         client.WithClientSessionIdleTimeout(TimeSpan.FromMinutes(35));

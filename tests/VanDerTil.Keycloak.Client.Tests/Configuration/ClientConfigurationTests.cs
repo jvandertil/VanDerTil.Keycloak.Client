@@ -80,8 +80,8 @@ public sealed class ClientConfigurationTests
 
         // Act
         var client = builder
-            .WithRedirectUri("https://configured.example/signin-oidc")
-            .WithRedirectUri("https://code.example/signin-oidc")
+            .AddRedirectUri("https://configured.example/signin-oidc")
+            .AddRedirectUri("https://code.example/signin-oidc")
             .Build();
 
         // Assert
@@ -132,17 +132,17 @@ public sealed class ClientConfigurationTests
     {
         // Arrange
         var builder = new ClientBuilder("web")
-            .WithRedirectUri("https://first.example/signin")
-            .WithPostLogoutRedirectUri("https://first.example/signout")
+            .AddRedirectUri("https://first.example/signin")
+            .AddPostLogoutRedirectUri("https://first.example/signout")
             .AddRole("reader");
         string[] roles = ["writer", "scheduler"];
 
         // Act
-        builder.WithRedirectUris("https://second.example/signin", "https://third.example/signin")
-            .WithPostLogoutRedirectUris("https://second.example/signout", "https://third.example/signout")
+        builder.AddRedirectUris("https://second.example/signin", "https://third.example/signin")
+            .AddPostLogoutRedirectUris("https://second.example/signout", "https://third.example/signout")
             .AddRoles(roles)
-            .WithRedirectUris()
-            .WithPostLogoutRedirectUris()
+            .AddRedirectUris()
+            .AddPostLogoutRedirectUris()
             .AddRoles();
         roles[0] = "changed";
         var client = builder.Build();
@@ -164,8 +164,8 @@ public sealed class ClientConfigurationTests
         var builder = new ClientBuilder("web");
 
         // Act / Assert
-        Should.Throw<ArgumentNullException>(() => builder.WithRedirectUris(null!));
-        Should.Throw<ArgumentNullException>(() => builder.WithPostLogoutRedirectUris(null!));
+        Should.Throw<ArgumentNullException>(() => builder.AddRedirectUris(null!));
+        Should.Throw<ArgumentNullException>(() => builder.AddPostLogoutRedirectUris(null!));
         Should.Throw<ArgumentNullException>(() => builder.AddRoles(null!));
     }
 
@@ -179,8 +179,8 @@ public sealed class ClientConfigurationTests
         var builder = new ClientBuilder("web");
 
         // Act / Assert
-        Should.Throw<ArgumentException>(() => builder.WithRedirectUris([value!]));
-        Should.Throw<ArgumentException>(() => builder.WithPostLogoutRedirectUris([value!]));
+        Should.Throw<ArgumentException>(() => builder.AddRedirectUris([value!]));
+        Should.Throw<ArgumentException>(() => builder.AddPostLogoutRedirectUris([value!]));
         Should.Throw<ArgumentException>(() => builder.AddRoles([value!]));
     }
 

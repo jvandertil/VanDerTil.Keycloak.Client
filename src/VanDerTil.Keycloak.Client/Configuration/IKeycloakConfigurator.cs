@@ -29,7 +29,7 @@ public interface IKeycloakConfigurator
     ///         .AddClient("web", client =&gt; client
     ///             .Public()
     ///             .WithStandardFlow()
-    ///             .WithRedirectUri("https://localhost:5001/signin-oidc"))
+    ///             .AddRedirectUri("https://localhost:5001/signin-oidc"))
     ///         .AddUser("alice", user =&gt; user
     ///             .WithEmail("alice@example.com")
     ///             .InRole("Admin")));

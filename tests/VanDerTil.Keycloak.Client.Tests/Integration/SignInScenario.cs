@@ -65,7 +65,7 @@ internal sealed class SignInScenario
             realm.AddClient(ClientId, client =>
             {
                 client.Confidential().WithSecret(ClientSecret).WithStandardFlow();
-                client.WithRedirectUri(RedirectUri).WithPkceS256().WithRefreshTokens(true);
+                client.AddRedirectUri(RedirectUri).WithPkceS256().WithRefreshTokens(true);
                 configureClient?.Invoke(client);
             });
             realm.AddUser(SeedUsername, user =>

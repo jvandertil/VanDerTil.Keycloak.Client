@@ -119,8 +119,8 @@ await configurator.ConfigureAsync(
                 client.Confidential();
                 client.WithSecret("client-secret");
                 client.WithStandardFlow();
-                client.WithRedirectUri("https://myapp.example.com/signin-oidc");
-                client.WithPostLogoutRedirectUri("https://myapp.example.com/signout-callback-oidc");
+                client.AddRedirectUri("https://myapp.example.com/signin-oidc");
+                client.AddPostLogoutRedirectUri("https://myapp.example.com/signout-callback-oidc");
 
                 // Add client-level roles
                 client.AddRole("admin");
@@ -170,8 +170,8 @@ realm.AddClient("my-spa", client =>
 {
     client.Public(); // No client secret
     client.WithStandardFlow();
-    client.WithRedirectUri("http://localhost:4200/*");
-    client.WithPostLogoutRedirectUri("http://localhost:4200/");
+    client.AddRedirectUri("http://localhost:4200/*");
+    client.AddPostLogoutRedirectUri("http://localhost:4200/");
 });
 ```
 
@@ -281,8 +281,8 @@ config.AddRealm("my-app", realm =>
     {
         client.Confidential().WithStandardFlow().WithPkceS256();
         client.WithSecret(clientSecret); // Supply from environment configuration or a secret store.
-        client.WithRedirectUri(signInCallback);
-        client.WithPostLogoutRedirectUri(signOutCallback);
+        client.AddRedirectUri(signInCallback);
+        client.AddPostLogoutRedirectUri(signOutCallback);
         client.WithFullScopeAllowed(false);
         foreach (var permission in permissions) client.AddRole(permission);
         client.WithClientRoleScope("admin-web", permissions);
@@ -381,7 +381,7 @@ The library is designed for safe repeated execution:
 ```csharp
 realm.AddClient("my-client", client =>
 {
-    client.WithRedirectUri("https://app.example.com/callback");
+    client.AddRedirectUri("https://app.example.com/callback");
 });
 ```
 
@@ -445,8 +445,8 @@ The library does **not** automatically run provisioning. You control when it exe
 | `Confidential()` | Marks the client as confidential (has secret) |
 | `WithSecret(string)` | Sets the client secret |
 | `WithStandardFlow()` | Enables standard OpenID Connect flow |
-| `WithRedirectUri(string)` | Adds a redirect URI |
-| `WithPostLogoutRedirectUri(string)` | Adds a post-logout redirect URI |
+| `AddRedirectUri(string)` / `AddRedirectUris(params string[])` | Adds redirect URIs |
+| `AddPostLogoutRedirectUri(string)` / `AddPostLogoutRedirectUris(params string[])` | Adds post-logout redirect URIs |
 | `Enabled()` | Enables the client |
 | `AddRole(string)` | Adds a client-level role |
 | `AddProtocolMapper(ProtocolMapperBuilder)` | Adds a protocol mapper |

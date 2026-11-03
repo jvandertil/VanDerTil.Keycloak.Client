@@ -216,13 +216,22 @@ public sealed class ClientBuilder
     /// </summary>
     /// <param name="uri">The redirect URI that Keycloak may send users back to after authentication.</param>
     /// <returns>The current builder.</returns>
-    public ClientBuilder WithRedirectUri(string uri)
+    public ClientBuilder AddRedirectUri(string uri)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(uri);
 
         _redirectUris.Add(uri);
         return this;
     }
+
+    /// <summary>
+    /// Adds an allowed redirect URI for sign-in responses.
+    /// </summary>
+    /// <param name="uri">The redirect URI that Keycloak may send users back to after authentication.</param>
+    /// <returns>The current builder.</returns>
+    /// <remarks>Use <see cref="AddRedirectUri(string)"/>.</remarks>
+    [Obsolete("Use AddRedirectUri instead.")]
+    public ClientBuilder WithRedirectUri(string uri) => AddRedirectUri(uri);
 
     /// <summary>
     /// Adds an allowed post-logout redirect URI.
@@ -233,13 +242,22 @@ public sealed class ClientBuilder
     /// Keycloak stores these values in client attributes rather than in a first-class property, and the configurator
     /// preserves that representation for compatibility with the admin API.
     /// </remarks>
-    public ClientBuilder WithPostLogoutRedirectUri(string uri)
+    public ClientBuilder AddPostLogoutRedirectUri(string uri)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(uri);
 
         _postLogoutRedirectUris.Add(uri);
         return this;
     }
+
+    /// <summary>
+    /// Adds an allowed post-logout redirect URI.
+    /// </summary>
+    /// <param name="uri">The URI that Keycloak may redirect users to after logout completes.</param>
+    /// <returns>The current builder.</returns>
+    /// <remarks>Use <see cref="AddPostLogoutRedirectUri(string)"/>.</remarks>
+    [Obsolete("Use AddPostLogoutRedirectUri instead.")]
+    public ClientBuilder WithPostLogoutRedirectUri(string uri) => AddPostLogoutRedirectUri(uri);
 
     /// <summary>
     /// Defines a client-level role. Client roles are scoped to this client and can be
@@ -280,12 +298,12 @@ public sealed class ClientBuilder
     /// it does not clear the configured or persisted URI list.</remarks>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="uris"/> is null.</exception>
     /// <exception cref="ArgumentException">Thrown when a URI is null, empty, or whitespace.</exception>
-    public ClientBuilder WithRedirectUris(params string[] uris)
+    public ClientBuilder AddRedirectUris(params string[] uris)
     {
         ArgumentNullException.ThrowIfNull(uris);
         foreach (var uri in uris)
         {
-            WithRedirectUri(uri);
+            AddRedirectUri(uri);
         }
         return this;
     }
@@ -297,12 +315,12 @@ public sealed class ClientBuilder
     /// it does not clear the configured or persisted URI list.</remarks>
     /// <exception cref="ArgumentNullException">Thrown when <paramref name="uris"/> is null.</exception>
     /// <exception cref="ArgumentException">Thrown when a URI is null, empty, or whitespace.</exception>
-    public ClientBuilder WithPostLogoutRedirectUris(params string[] uris)
+    public ClientBuilder AddPostLogoutRedirectUris(params string[] uris)
     {
         ArgumentNullException.ThrowIfNull(uris);
         foreach (var uri in uris)
         {
-            WithPostLogoutRedirectUri(uri);
+            AddPostLogoutRedirectUri(uri);
         }
         return this;
     }

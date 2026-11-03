@@ -32,7 +32,7 @@ public sealed class ClientProvisioningTests
         await _fixture.ConfigureRealmAsync(realmId, realm => realm.AddClient(ClientId, client =>
         {
             client.Confidential().WithSecret(ClientSecret).WithStandardFlow();
-            client.WithRedirectUri(RedirectUri).WithPostLogoutRedirectUri(PostLogoutRedirectUri);
+            client.AddRedirectUri(RedirectUri).AddPostLogoutRedirectUri(PostLogoutRedirectUri);
         }));
 
         // Assert
