@@ -71,11 +71,11 @@
       },
       "Testcontainers.Keycloak": {
         "type": "Direct",
-        "requested": "[4.16.0, )",
-        "resolved": "4.16.0",
-        "contentHash": "FNILUtutzMzox6Dz4F0FvOAezcIpqe2iXyMHURLvx94Ie1Oxias/kaJLxl3dl8UsDa8L4HmJZBn3pTFbDSPcuA==",
+        "requested": "[4.17.0, )",
+        "resolved": "4.17.0",
+        "contentHash": "FFG84svnhQYJTD44vudIRpiIa7a+yJ84LVgLfqXgnTF/q4wjgIbYgvPB+28t9yb08tU+GikA7rJXORxPWQ+dfA==",
         "dependencies": {
-          "Testcontainers": "4.16.0"
+          "Testcontainers": "4.17.0"
         }
       },
       "BouncyCastle.Cryptography": {
@@ -417,8 +417,8 @@
       },
       "Testcontainers": {
         "type": "Transitive",
-        "resolved": "4.16.0",
-        "contentHash": "JmMUZk6ZXQovbGQjaMB+YxOR0PbJTdYjOYjRcrm5LrA2dhLVMuCbhVGGunzCGIQfFMUB5Lno2LPOHMMuaGmuIg==",
+        "resolved": "4.17.0",
+        "contentHash": "yXAdoZ3dcrg84Iy05X10qRfz8EO35tpSmI1kK91Qe32MNz0DyPuSbiCi33i5AvSbYMET9HxBw32UuHJHSSK49A==",
         "dependencies": {
           "Docker.DotNet.Enhanced": "4.3.3",
           "Docker.DotNet.Enhanced.X509": "4.3.3",
