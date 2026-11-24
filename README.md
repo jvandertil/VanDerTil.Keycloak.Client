@@ -507,13 +507,7 @@ MIT License - see [LICENSE](LICENSE) for details
 
 ## Changelog
 
-### v0.9.0-preview (Pre-release)
-- Initial preview release
-- Fluent configuration API
-- Idempotent provisioning
-- Multiple authentication modes (direct grant, client credentials, external provider)
-- Protocol mapper support
-- Role assignment
+See GitHub release for release notes.
 
 ---
 
