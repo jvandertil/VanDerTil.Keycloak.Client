@@ -22,6 +22,7 @@ internal sealed class RefitClientFactory
     {
         var httpClient = _httpClientFactory.CreateClient(HttpClientName);
         httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-        return RestService.For<TClient>(httpClient);
+
+        return RestService.ForGenerated<TClient>(httpClient, KeycloakClientRepresentationsJsonSerializerContext.Default);
     }
 }
