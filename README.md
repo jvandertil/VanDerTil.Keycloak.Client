@@ -96,10 +96,6 @@ using VanDerTil.Keycloak.Client.Configuration;
 
 var app = builder.Build();
 
-// Obtain access token
-var tokenProvider = app.Services.GetRequiredService<OpenIdConnectAccessTokenProvider>();
-var accessToken = await tokenProvider.GetAuthorizationTokenAsync(CancellationToken.None);
-
 // Define and apply configuration
 var configurator = app.Services.GetRequiredService<IKeycloakConfigurator>();
 await configurator.ConfigureAsync(
@@ -147,7 +143,6 @@ await configurator.ConfigureAsync(
             });
         });
     },
-    accessToken,
     CancellationToken.None);
 ```
 
@@ -223,16 +218,13 @@ realm.AddUser("jane.admin", user =>
 public class KeycloakProvisioningService : IHostedService
 {
     private readonly IKeycloakConfigurator _configurator;
-    private readonly OpenIdConnectAccessTokenProvider _tokenProvider;
     private readonly ILogger<KeycloakProvisioningService> _logger;
 
     public KeycloakProvisioningService(
         IKeycloakConfigurator configurator,
-        OpenIdConnectAccessTokenProvider tokenProvider,
         ILogger<KeycloakProvisioningService> logger)
     {
         _configurator = configurator;
-        _tokenProvider = tokenProvider;
         _logger = logger;
     }
 
@@ -240,14 +232,11 @@ public class KeycloakProvisioningService : IHostedService
     {
         _logger.LogInformation("Provisioning Keycloak configuration...");
 
-        var accessToken = await _tokenProvider.GetAuthorizationTokenAsync(cancellationToken);
-
         await _configurator.ConfigureAsync(
             config =>
             {
                 // Your configuration here
             },
-            accessToken,
             cancellationToken);
 
         _logger.LogInformation("Keycloak configuration provisioning complete.");
@@ -375,7 +364,9 @@ The library is designed for safe repeated execution:
 
 ### Partial Updates (No Drift Detection)
 
-**Important:** The library performs *partial updates* — it only modifies properties you explicitly configure.
+**Important:** The library performs *partial updates* — it only modifies properties you explicitly configure. `Add*`
+methods accumulate desired additions; they do not imply that omitted items should be removed. This naming distinguishes
+them from replacement-style `With*` settings such as `WithClientRoleScope`.
 
 **Example:**
 ```csharp
@@ -434,7 +425,11 @@ The library does **not** automatically run provisioning. You control when it exe
 | `Enabled()` | Enables the realm |
 | `AddClient(string, Action<ClientBuilder>)` | Adds a client to the realm |
 | `AddUser(string, Action<UserBuilder>)` | Adds a user to the realm |
-| `AddRole(string)` | Adds a realm-level role |
+| `AddRole(string)` | Ensures a realm-level role exists; omitted roles are not deleted |
+| `WithSsoSessionIdleTimeout(TimeSpan)` | Sets the realm SSO idle timeout |
+| `WithSsoSessionMaxLifespan(TimeSpan)` | Sets the realm SSO maximum lifespan |
+| `WithRefreshTokenRotation(bool, int)` | Sets realm-wide refresh-token rotation and max reuse |
+| `AddGroup(string, Action<GroupBuilder>)` | Adds/configures a top-level group |
 
 ### ClientBuilder
 
@@ -448,8 +443,15 @@ The library does **not** automatically run provisioning. You control when it exe
 | `AddRedirectUri(string)` / `AddRedirectUris(params string[])` | Adds redirect URIs |
 | `AddPostLogoutRedirectUri(string)` / `AddPostLogoutRedirectUris(params string[])` | Adds post-logout redirect URIs |
 | `Enabled()` | Enables the client |
-| `AddRole(string)` | Adds a client-level role |
+| `AddRole(string)` / `AddRoles(params string[])` | Ensures client-level roles exist; omitted roles are not deleted |
 | `AddProtocolMapper(ProtocolMapperBuilder)` | Adds a protocol mapper |
+| `WithFullScopeAllowed(bool)` | Sets whether all roles are in the client's scope |
+| `WithClientRoleScope(string, params string[])` | Replaces direct scope mappings for a role-owning client |
+| `WithRealmRoleScope(params string[])` | Replaces direct realm-role scope mappings |
+| `WithPkceS256()` | Requires S256 PKCE |
+| `WithRefreshTokens(bool)` | Enables/disables ordinary session-bound refresh tokens |
+| `WithAccessTokenLifespan(TimeSpan)` | Sets the client access-token lifetime |
+| `WithClientSessionIdleTimeout(TimeSpan)` / `WithClientSessionMaxLifespan(TimeSpan)` | Sets client session limits |
 
 ### UserBuilder
 
@@ -462,6 +464,7 @@ The library does **not** automatically run provisioning. You control when it exe
 | `WithTemporaryPassword(string)` | Sets a temporary password (user must change on first login) |
 | `InRole(string)` | Assigns a realm-level role |
 | `InClientRole(string, string)` | Assigns a client-level role |
+| `InGroup(string)` | Adds the user to a top-level group |
 
 ### ProtocolMapperBuilder
 
