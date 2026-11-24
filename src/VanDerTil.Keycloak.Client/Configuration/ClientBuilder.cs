@@ -225,15 +225,6 @@ public sealed class ClientBuilder
     }
 
     /// <summary>
-    /// Adds an allowed redirect URI for sign-in responses.
-    /// </summary>
-    /// <param name="uri">The redirect URI that Keycloak may send users back to after authentication.</param>
-    /// <returns>The current builder.</returns>
-    /// <remarks>Use <see cref="AddRedirectUri(string)"/>.</remarks>
-    [Obsolete("Use AddRedirectUri instead.")]
-    public ClientBuilder WithRedirectUri(string uri) => AddRedirectUri(uri);
-
-    /// <summary>
     /// Adds an allowed post-logout redirect URI.
     /// </summary>
     /// <param name="uri">The URI that Keycloak may redirect users to after logout completes.</param>
@@ -249,15 +240,6 @@ public sealed class ClientBuilder
         _postLogoutRedirectUris.Add(uri);
         return this;
     }
-
-    /// <summary>
-    /// Adds an allowed post-logout redirect URI.
-    /// </summary>
-    /// <param name="uri">The URI that Keycloak may redirect users to after logout completes.</param>
-    /// <returns>The current builder.</returns>
-    /// <remarks>Use <see cref="AddPostLogoutRedirectUri(string)"/>.</remarks>
-    [Obsolete("Use AddPostLogoutRedirectUri instead.")]
-    public ClientBuilder WithPostLogoutRedirectUri(string uri) => AddPostLogoutRedirectUri(uri);
 
     /// <summary>
     /// Defines a client-level role. Client roles are scoped to this client and can be
@@ -308,13 +290,6 @@ public sealed class ClientBuilder
         return this;
     }
 
-    /// <summary>Adds allowed redirect URIs for sign-in responses.</summary>
-    /// <param name="uris">The redirect URIs to add.</param>
-    /// <returns>The current builder.</returns>
-    /// <remarks>Use <see cref="AddRedirectUris(string[])"/>.</remarks>
-    [Obsolete("Use AddRedirectUris instead.")]
-    public ClientBuilder WithRedirectUris(params string[] uris) => AddRedirectUris(uris);
-
     /// <summary>Adds allowed post-logout redirect URIs.</summary>
     /// <param name="uris">The post-logout redirect URIs to add.</param>
     /// <returns>The current builder.</returns>
@@ -331,13 +306,6 @@ public sealed class ClientBuilder
         }
         return this;
     }
-
-    /// <summary>Adds allowed post-logout redirect URIs.</summary>
-    /// <param name="uris">The post-logout redirect URIs to add.</param>
-    /// <returns>The current builder.</returns>
-    /// <remarks>Use <see cref="AddPostLogoutRedirectUris(string[])"/>.</remarks>
-    [Obsolete("Use AddPostLogoutRedirectUris instead.")]
-    public ClientBuilder WithPostLogoutRedirectUris(params string[] uris) => AddPostLogoutRedirectUris(uris);
 
     /// <summary>Defines client-level roles to ensure exist.</summary>
     /// <param name="roleNames">The client role names to add.</param>
