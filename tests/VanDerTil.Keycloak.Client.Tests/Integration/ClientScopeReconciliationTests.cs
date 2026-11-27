@@ -156,6 +156,37 @@ public sealed class ClientScopeReconciliationTests
         (await GetRealmScopeRolesAsync(realmId)).ShouldBe(new[] { "View" });
     }
 
+    [TestMethod]
+    public async Task Should_ResolveScopeRoleSourceDeclaredAfterClient()
+    {
+        var realmId = KeycloakFixture.CreateUniqueRealmId();
+        await _fixture.ConfigureRealmAsync(realmId, realm =>
+        {
+            realm.AddClient(ClientId, client => client.WithClientRoleScope("later-api", "read"));
+            realm.AddClient("later-api", client => client.AddRole("read"));
+        });
+
+        (await GetScopeRolesAsync(realmId, "later-api")).ShouldBe(new[] { "read" });
+    }
+
+    [TestMethod]
+    public async Task Should_PreserveEarlierScopeChanges_When_LaterRoleIsUnknown()
+    {
+        var realmId = KeycloakFixture.CreateUniqueRealmId();
+        await _fixture.ConfigureRealmAsync(realmId, realm =>
+        {
+            realm.AddClient(ClientId, client => client.WithClientRoleScope("first", "old").WithClientRoleScope("second", "old"));
+            realm.AddClient("first", client => client.AddRole("old").AddRole("new"));
+            realm.AddClient("second", client => client.AddRole("old"));
+        });
+
+        await Should.ThrowAsync<InvalidOperationException>(() => _fixture.ConfigureRealmAsync(realmId, realm =>
+            realm.AddClient(ClientId, client => client.WithClientRoleScope("first", "new").WithClientRoleScope("second", "missing"))));
+
+        (await GetScopeRolesAsync(realmId, "first")).ShouldBe(new[] { "new" });
+        (await GetScopeRolesAsync(realmId, "second")).ShouldBe(new[] { "old" });
+    }
+
     private Task SetRealmScopeRolesAsync(string realmId, params string[] roles)
     {
         return _fixture.ConfigureRealmAsync(realmId,
