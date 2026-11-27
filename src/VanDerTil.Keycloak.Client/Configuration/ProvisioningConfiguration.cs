@@ -1,3 +1,5 @@
+using System.Linq;
+
 namespace VanDerTil.Keycloak.Client.Configuration;
 
 // Detached desired state. These types deliberately do not generate ToString methods for secrets.

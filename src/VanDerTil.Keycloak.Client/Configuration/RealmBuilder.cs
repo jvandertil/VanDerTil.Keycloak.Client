@@ -1,3 +1,5 @@
+using System.Linq;
+
 namespace VanDerTil.Keycloak.Client.Configuration;
 
 /// <summary>

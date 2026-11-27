@@ -1,3 +1,5 @@
+using System.Linq;
+
 using VanDerTil.Keycloak.Client.Configuration;
 
 namespace VanDerTil.Keycloak.Client.Tests.Configuration;
@@ -71,6 +73,6 @@ public sealed class ProvisioningConfigurationTests
         updated.Enabled.ShouldBe(false);
         var user = ConfigurationProjections.CreateUser(new UserBuilder("alice").WithTemporaryPassword("temp").WithPassword("permanent").Build());
         user.Enabled.ShouldBe(true);
-        user.Credentials!.Select(c => (c.Value, c.Temporary)).ShouldBe(new[] { ("temp", true), ("permanent", false) });
+        user.Credentials!.Select(c => (c.Value!, c.Temporary)).ShouldBe(new[] { ("temp", true), ("permanent", false) });
     }
 }
