@@ -42,6 +42,22 @@ public sealed class UserProvisioningTests
         (await users.GetClientRoleMappingsAsync(realmId, user.Id!, client.Id!, CancellationToken.None))
             .Select(role => role.Name).ShouldBe(new[] { "admin" });
     }
+
+    [TestMethod]
+    public async Task Should_AssignRoleFromPreviouslyProvisionedClient()
+    {
+        var realmId = KeycloakFixture.CreateUniqueRealmId();
+        await _fixture.ConfigureRealmAsync(realmId, realm => realm.AddClient(ClientId, client => client.AddRole("admin")));
+
+        await _fixture.ConfigureRealmAsync(realmId, realm => realm.AddUser(SeedUsername, user => user.InClientRole("SAMPLE-APP-WEB", "admin")));
+
+        var client = await _fixture.GetClientAsync(realmId, ClientId);
+        var user = await _fixture.GetUserAsync(realmId, SeedUsername);
+        var users = await _fixture.CreateClientAsync<IUsersResource>();
+        (await users.GetClientRoleMappingsAsync(realmId, user.Id!, client.Id!, CancellationToken.None))
+            .Select(role => role.Name).ShouldBe(new[] { "admin" });
+    }
+
     [TestMethod]
     public async Task Should_PreserveUnmanagedUsersAndMemberships_When_ConfiguringUserAgain()
     {
