@@ -20,4 +20,5 @@ public sealed class GroupBuilder
         ClientRoles[clientId] = (string[])roleNames.Clone();
         return this;
     }
+    internal GroupConfiguration Build() => new() { Name = Name, ClientRoles = ConfigurationCopies.Mappings(ClientRoles) };
 }

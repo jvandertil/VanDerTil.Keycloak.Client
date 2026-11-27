@@ -1,7 +1,5 @@
 using Microsoft.Extensions.Configuration;
 
-using VanDerTil.Keycloak.Client.Client.Representations;
-
 namespace VanDerTil.Keycloak.Client.Configuration;
 
 /// <summary>
@@ -156,44 +154,10 @@ public sealed class UserBuilder
         return this;
     }
 
-    internal UserRepresentation Build()
+    internal UserConfiguration Build() => new()
     {
-        var user = new UserRepresentation
-        {
-            Username = _username,
-            FirstName = _firstName,
-            LastName = _lastName,
-            Email = _email,
-            Enabled = true,
-        };
-
-        if (_temporaryPassword is not null)
-        {
-            user.Credentials =
-            [
-                new CredentialRepresentation
-                {
-                    Type = "password",
-                    Value = _temporaryPassword,
-                    Temporary = true,
-                }
-            ];
-        }
-
-        if (_password is not null)
-        {
-            user.Credentials ??= [];
-            user.Credentials.Add(new CredentialRepresentation
-            {
-                Type = "password",
-                Value = _password,
-                Temporary = false
-            });
-        }
-
-        return user;
-    }
-
-    internal IReadOnlyList<string> Roles => _roles;
-    internal IReadOnlyList<(string ClientId, string RoleName)> ClientRoles => _clientRoles;
+        Username = _username, FirstName = _firstName, LastName = _lastName, Email = _email,
+        TemporaryPassword = _temporaryPassword, Password = _password,
+        Roles = ConfigurationCopies.List(_roles), ClientRoles = ConfigurationCopies.List(_clientRoles), Groups = ConfigurationCopies.List(Groups),
+    };
 }

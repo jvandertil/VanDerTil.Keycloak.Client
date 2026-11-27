@@ -1,5 +1,3 @@
-using VanDerTil.Keycloak.Client.Client.Representations;
-
 namespace VanDerTil.Keycloak.Client.Configuration;
 
 /// <summary>
@@ -69,15 +67,5 @@ public sealed class ProtocolMapperBuilder
             .WithConfig("jsonType.label", "String");
     }
 
-    internal ProtocolMapperRepresentation Build()
-    {
-        return new ProtocolMapperRepresentation
-        {
-            Name = _name,
-            Protocol = "openid-connect",
-            ProtocolMapper = _protocolMapper,
-            ConsentRequired = false,
-            Config = _config.Count > 0 ? new Dictionary<string, string>(_config) : null,
-        };
-    }
+    internal ProtocolMapperConfiguration Build() => new() { Name = _name, ProtocolMapper = _protocolMapper, Config = ConfigurationCopies.Dictionary(_config) };
 }

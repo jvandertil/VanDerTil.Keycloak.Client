@@ -1,3 +1,5 @@
+using System.Linq;
+
 namespace VanDerTil.Keycloak.Client.Configuration;
 
 /// <summary>
@@ -28,5 +30,5 @@ public sealed class KeycloakConfigurationBuilder
         return this;
     }
 
-    internal IReadOnlyList<RealmBuilder> Realms => _realms;
+    internal ProvisioningConfiguration Build() => new() { Realms = ConfigurationCopies.List(_realms.Select(realm => realm.Build())) };
 }

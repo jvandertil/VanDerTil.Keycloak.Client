@@ -7,7 +7,7 @@ namespace VanDerTil.Keycloak.Client.Configuration;
 
 internal sealed partial class KeycloakConfigurator
 {
-    private async Task ConfigureGroupsAsync(string realm, IReadOnlyList<GroupBuilder> groups, string token, CancellationToken ct)
+    private async Task ConfigureGroupsAsync(string realm, IReadOnlyList<GroupConfiguration> groups, string token, CancellationToken ct)
     {
         var resource = _clientFactory.Create<IGroupsResource>(token);
         foreach (var group in groups)
@@ -52,7 +52,7 @@ internal sealed partial class KeycloakConfigurator
         return response.Content ?? throw new InvalidOperationException($"Keycloak returned no group for '{name}'.");
     }
 
-    private async Task ConfigureClientScopesAsync(string realm, IReadOnlyList<ClientBuilder> clients, string token, CancellationToken ct)
+    private async Task ConfigureClientScopesAsync(string realm, IReadOnlyList<ClientConfiguration> clients, string token, CancellationToken ct)
     {
         var resource = _clientFactory.Create<IClientScopeMappingsResource>(token);
         foreach (var client in clients)
@@ -62,7 +62,7 @@ internal sealed partial class KeycloakConfigurator
                 continue;
             }
             var allClients = await _clientFactory.Create<IClientsResource>(token).GetAllAsync(realm, ct).ConfigureAwait(false);
-            var clientId = allClients.Single(c => c.ClientId == client.Build().ClientId).Id!;
+            var clientId = allClients.Single(c => c.ClientId == client.ClientId).Id!;
             if (client.RealmRoleScopes is { } realmRoleNames)
             {
                 var available = await _clientFactory.Create<IRolesResource>(token).GetAllAsync(realm, ct).ConfigureAwait(false);
@@ -88,7 +88,7 @@ internal sealed partial class KeycloakConfigurator
         }
     }
 
-    private async Task<(string Id, List<RoleRepresentation> Roles)> ResolveRolesAsync(string realm, string clientId, string[] names, string token, CancellationToken ct)
+    private async Task<(string Id, List<RoleRepresentation> Roles)> ResolveRolesAsync(string realm, string clientId, IReadOnlyList<string> names, string token, CancellationToken ct)
     {
         var clients = await _clientFactory.Create<IClientsResource>(token).GetAllAsync(realm, ct).ConfigureAwait(false);
         var id = clients.SingleOrDefault(c => c.ClientId == clientId)?.Id

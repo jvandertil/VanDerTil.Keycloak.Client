@@ -18,7 +18,7 @@ public sealed class UserConfigurationTests
         builder.WithConfiguration(configuration);
 
         // Assert
-        var credential = builder.Build().Credentials.ShouldHaveSingleItem();
+        var credential = ConfigurationProjections.CreateUser(builder.Build()).Credentials.ShouldHaveSingleItem();
         credential.Type.ShouldBe("password");
         credential.Value.ShouldBe("configured-password");
         credential.Temporary.ShouldBeTrue();
@@ -37,7 +37,7 @@ public sealed class UserConfigurationTests
         builder.WithConfiguration(configuration);
 
         // Assert
-        builder.Build().Credentials.ShouldHaveSingleItem().Value.ShouldBe("code-password");
+        ConfigurationProjections.CreateUser(builder.Build()).Credentials.ShouldHaveSingleItem().Value.ShouldBe("code-password");
     }
 
     [TestMethod]
@@ -60,7 +60,7 @@ public sealed class UserConfigurationTests
         var builder = new UserBuilder("test-user");
 
         // Act
-        var user = builder.Build();
+        var user = ConfigurationProjections.CreateUser(builder.Build());
 
         // Assert
         user.Credentials.ShouldBeNull();

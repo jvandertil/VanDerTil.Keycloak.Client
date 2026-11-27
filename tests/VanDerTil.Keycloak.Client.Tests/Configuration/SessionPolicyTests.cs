@@ -107,7 +107,7 @@ public sealed class SessionPolicyTests
 
         // Assert
         client.FullScopeAllowed.ShouldBeNull();
-        client.Attributes.ShouldBeNull();
+        client.Attributes.ShouldBeEmpty();
     }
 
     [TestMethod]
