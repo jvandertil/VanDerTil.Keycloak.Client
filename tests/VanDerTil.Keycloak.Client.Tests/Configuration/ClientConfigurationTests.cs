@@ -102,7 +102,7 @@ public sealed class ClientConfigurationTests
         builder.AddRole("admin").AddRole("scheduler");
 
         // Assert
-        builder.Roles.ShouldBe(new[] { "admin", "scheduler" }, ignoreOrder: true);
+        builder.Build().Roles.ShouldBe(new[] { "admin", "scheduler" }, ignoreOrder: true);
     }
 
     [TestMethod]
@@ -115,7 +115,7 @@ public sealed class ClientConfigurationTests
         builder.AddProtocolMapper(ProtocolMapperBuilder.UserClientRolesToClaim("client-roles", "roles"));
 
         // Assert
-        var mapper = builder.ProtocolMappers.ShouldHaveSingleItem().Build();
+        var mapper = builder.Build().ProtocolMappers.ShouldHaveSingleItem();
         mapper.Name.ShouldBe("client-roles");
         mapper.ProtocolMapper.ShouldBe("oidc-usermodel-client-role-mapper");
         mapper.Config.ShouldNotBeNull();
@@ -145,7 +145,7 @@ public sealed class ClientConfigurationTests
             .AddPostLogoutRedirectUris()
             .AddRoles();
         roles[0] = "changed";
-        var client = builder.Build();
+        var client = ConfigurationProjections.CreateClient(builder.Build());
 
         // Assert
         client.RedirectUris.ShouldBe(new[]
@@ -154,7 +154,7 @@ public sealed class ClientConfigurationTests
         });
         client.Attributes.ShouldNotBeNull()["post.logout.redirect.uris"].ShouldBe(
             "https://first.example/signout##https://second.example/signout##https://third.example/signout");
-        builder.Roles.ShouldBe(new[] { "reader", "writer", "scheduler" });
+        builder.Build().Roles.ShouldBe(new[] { "reader", "writer", "scheduler" });
     }
 
     [TestMethod]

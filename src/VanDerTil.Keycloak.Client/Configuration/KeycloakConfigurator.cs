@@ -28,20 +28,21 @@ internal sealed partial class KeycloakConfigurator : IKeycloakConfigurator
         var builder = new KeycloakConfigurationBuilder();
         configure(builder);
 
-        foreach (var realm in builder.Realms)
+        var configuration = builder.Build();
+        foreach (var realm in configuration.Realms)
         {
             await ConfigureRealmAsync(realm, accessToken, cancellationToken).ConfigureAwait(false);
         }
     }
 
-    private async Task ConfigureRealmAsync(RealmBuilder realmBuilder, string accessToken, CancellationToken cancellationToken)
+    private async Task ConfigureRealmAsync(RealmConfiguration realm, string accessToken, CancellationToken cancellationToken)
     {
-        var realmId = realmBuilder.RealmId;
+        var realmId = realm.RealmId;
         var realmsClient = _clientFactory.Create<IRealmsResource>(accessToken);
         var realmClient = _clientFactory.Create<IRealmResource>(accessToken);
 
         var existingRealms = await realmsClient.GetAllAsync(cancellationToken).ConfigureAwait(false);
-        var desiredRealm = realmBuilder.Build();
+        var desiredRealm = ConfigurationProjections.CreateRealm(realm);
         var existingRealm = existingRealms.FirstOrDefault(x => string.Equals(x.Realm, realmId, StringComparison.OrdinalIgnoreCase));
 
         if (existingRealm is null)
@@ -50,14 +51,14 @@ internal sealed partial class KeycloakConfigurator : IKeycloakConfigurator
         }
         else
         {
-            await realmClient.UpdateAsync(realmId, MergeRealm(existingRealm, desiredRealm, realmBuilder), cancellationToken).ConfigureAwait(false);
+            await realmClient.UpdateAsync(realmId, ConfigurationProjections.UpdateRealm(existingRealm, desiredRealm, realm), cancellationToken).ConfigureAwait(false);
         }
 
-        await ConfigureRolesAsync(realmId, realmBuilder.Roles, accessToken, cancellationToken).ConfigureAwait(false);
-        await ConfigureClientsAsync(realmId, realmBuilder.Clients, accessToken, cancellationToken).ConfigureAwait(false);
-        await ConfigureClientScopesAsync(realmId, realmBuilder.Clients, accessToken, cancellationToken).ConfigureAwait(false);
-        await ConfigureGroupsAsync(realmId, realmBuilder.Groups, accessToken, cancellationToken).ConfigureAwait(false);
-        await ConfigureUsersAsync(realmId, realmBuilder.Users, accessToken, cancellationToken).ConfigureAwait(false);
+        await ConfigureRolesAsync(realmId, realm.Roles, accessToken, cancellationToken).ConfigureAwait(false);
+        await ConfigureClientsAsync(realmId, realm.Clients, accessToken, cancellationToken).ConfigureAwait(false);
+        await ConfigureClientScopesAsync(realmId, realm.Clients, accessToken, cancellationToken).ConfigureAwait(false);
+        await ConfigureGroupsAsync(realmId, realm.Groups, accessToken, cancellationToken).ConfigureAwait(false);
+        await ConfigureUsersAsync(realmId, realm.Users, accessToken, cancellationToken).ConfigureAwait(false);
     }
 
     private async Task ConfigureRolesAsync(string realmId, IReadOnlyList<string> roles, string accessToken, CancellationToken cancellationToken)
@@ -81,7 +82,7 @@ internal sealed partial class KeycloakConfigurator : IKeycloakConfigurator
         }
     }
 
-    private async Task ConfigureClientsAsync(string realmId, IReadOnlyList<ClientBuilder> clients, string accessToken, CancellationToken cancellationToken)
+    private async Task ConfigureClientsAsync(string realmId, IReadOnlyList<ClientConfiguration> clients, string accessToken, CancellationToken cancellationToken)
     {
         if (clients.Count == 0)
         {
@@ -91,27 +92,26 @@ internal sealed partial class KeycloakConfigurator : IKeycloakConfigurator
         var clientsResource = _clientFactory.Create<IClientsResource>(accessToken);
         var existingClients = await clientsResource.GetAllAsync(realmId, cancellationToken).ConfigureAwait(false);
 
-        foreach (var clientBuilder in clients)
+        foreach (var client in clients)
         {
-            var representation = clientBuilder.Build();
+            var representation = ConfigurationProjections.CreateClient(client);
             var existing = existingClients.FirstOrDefault(c => c.ClientId == representation.ClientId);
             string internalId;
 
             if (existing is null)
             {
-                representation.FullScopeAllowed ??= false;
                 var response = await clientsResource.CreateAsync(realmId, representation, cancellationToken).ConfigureAwait(false);
                 internalId = ExtractInternalIdFromLocationHeader(response, $"client '{representation.ClientId}'");
             }
             else
             {
                 internalId = existing.Id ?? throw new InvalidOperationException($"The client '{representation.ClientId}' does not have a Keycloak internal id.");
-                var mergedRepresentation = MergeClient(existing, representation, clientBuilder);
+                var mergedRepresentation = ConfigurationProjections.UpdateClient(existing, representation, client);
                 await clientsResource.UpdateAsync(realmId, internalId, mergedRepresentation, cancellationToken).ConfigureAwait(false);
             }
 
-            await ConfigureClientRolesAsync(realmId, internalId, clientBuilder.Roles, accessToken, cancellationToken).ConfigureAwait(false);
-            await ConfigureClientProtocolMappersAsync(realmId, internalId, clientBuilder.ProtocolMappers, accessToken, cancellationToken).ConfigureAwait(false);
+            await ConfigureClientRolesAsync(realmId, internalId, client.Roles, accessToken, cancellationToken).ConfigureAwait(false);
+            await ConfigureClientProtocolMappersAsync(realmId, internalId, client.ProtocolMappers, accessToken, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -144,7 +144,7 @@ internal sealed partial class KeycloakConfigurator : IKeycloakConfigurator
     private async Task ConfigureClientProtocolMappersAsync(
         string realmId,
         string clientInternalId,
-        IReadOnlyList<ProtocolMapperBuilder> mappers,
+        IReadOnlyList<ProtocolMapperConfiguration> mappers,
         string accessToken,
         CancellationToken cancellationToken)
     {
@@ -156,9 +156,9 @@ internal sealed partial class KeycloakConfigurator : IKeycloakConfigurator
         var mappersResource = _clientFactory.Create<IClientProtocolMappersResource>(accessToken);
         var existingMappers = await mappersResource.GetAllAsync(realmId, clientInternalId, cancellationToken).ConfigureAwait(false);
 
-        foreach (var mapperBuilder in mappers)
+        foreach (var mapper in mappers)
         {
-            var desired = mapperBuilder.Build();
+            var desired = ConfigurationProjections.CreateMapper(mapper);
             var existing = existingMappers.FirstOrDefault(m => string.Equals(m.Name, desired.Name, StringComparison.OrdinalIgnoreCase));
 
             if (existing is null)
@@ -168,13 +168,13 @@ internal sealed partial class KeycloakConfigurator : IKeycloakConfigurator
             else
             {
                 var mapperId = existing.Id ?? throw new InvalidOperationException($"Protocol mapper '{desired.Name}' does not have a Keycloak internal id.");
-                await mappersResource.UpdateAsync(realmId, clientInternalId, mapperId, MergeProtocolMapper(existing, desired), cancellationToken).ConfigureAwait(false);
+                await mappersResource.UpdateAsync(realmId, clientInternalId, mapperId, ConfigurationProjections.UpdateMapper(existing, desired), cancellationToken).ConfigureAwait(false);
             }
         }
     }
 
     private async Task ConfigureUsersAsync(
-        string realmId, IReadOnlyList<UserBuilder> users, string accessToken, CancellationToken cancellationToken)
+        string realmId, IReadOnlyList<UserConfiguration> users, string accessToken, CancellationToken cancellationToken)
     {
         if (users.Count == 0)
         {
@@ -191,9 +191,9 @@ internal sealed partial class KeycloakConfigurator : IKeycloakConfigurator
         // Fetched lazily — only when the first user with client roles is encountered.
         List<ClientRepresentation>? allClients = null;
 
-        foreach (var userBuilder in users)
+        foreach (var user in users)
         {
-            var representation = userBuilder.Build();
+            var representation = ConfigurationProjections.CreateUser(user);
             var matches = await usersResource.FindAsync(realmId, representation.Username!, cancellationToken).ConfigureAwait(false);
             var existing = matches.SingleOrDefault(u => u.Username == representation.Username);
             string? userId = existing?.Id;
@@ -206,27 +206,27 @@ internal sealed partial class KeycloakConfigurator : IKeycloakConfigurator
             else
             {
                 userId = existing.Id ?? throw new InvalidOperationException($"The user '{representation.Username}' does not have a Keycloak internal id.");
-                var mergedRepresentation = MergeUser(existing, representation);
+                var mergedRepresentation = ConfigurationProjections.UpdateUser(existing, representation);
                 await usersResource.UpdateAsync(realmId, userId, mergedRepresentation, cancellationToken).ConfigureAwait(false);
             }
 
-            foreach (var groupName in userBuilder.Groups)
+            foreach (var groupName in user.Groups)
             {
                 var groupId = await FindGroupIdAsync(realmId, groupName, accessToken, cancellationToken).ConfigureAwait(false);
                 await usersResource.JoinGroupAsync(realmId, userId!, groupId, cancellationToken).ConfigureAwait(false);
             }
 
-            if (userBuilder.Roles.Count > 0)
+            if (user.Roles.Count > 0)
             {
                 if (string.IsNullOrWhiteSpace(userId))
                 {
                     throw new InvalidOperationException($"The user '{representation.Username}' does not have a Keycloak internal id.");
                 }
 
-                await AssignRolesToUserAsync(realmId, userId, userBuilder.Roles, allRoles, usersResource, cancellationToken).ConfigureAwait(false);
+                await AssignRolesToUserAsync(realmId, userId, user.Roles, allRoles, usersResource, cancellationToken).ConfigureAwait(false);
             }
 
-            if (userBuilder.ClientRoles.Count > 0)
+            if (user.ClientRoles.Count > 0)
             {
                 if (string.IsNullOrWhiteSpace(userId))
                 {
@@ -234,7 +234,7 @@ internal sealed partial class KeycloakConfigurator : IKeycloakConfigurator
                 }
 
                 allClients ??= await clientsResource.GetAllAsync(realmId, cancellationToken).ConfigureAwait(false);
-                await AssignClientRolesToUserAsync(realmId, userId, userBuilder.ClientRoles, allClients, usersResource, clientRolesResource, cancellationToken).ConfigureAwait(false);
+                await AssignClientRolesToUserAsync(realmId, userId, user.ClientRoles, allClients, usersResource, clientRolesResource, cancellationToken).ConfigureAwait(false);
             }
         }
     }
@@ -300,58 +300,6 @@ internal sealed partial class KeycloakConfigurator : IKeycloakConfigurator
         }
     }
 
-    private static RealmRepresentation MergeRealm(RealmRepresentation existing, RealmRepresentation desired, RealmBuilder realmBuilder)
-    {
-        return new RealmRepresentation
-        {
-            AdditionalProperties = existing.AdditionalProperties,
-            Id = existing.Id ?? desired.Id,
-            Realm = existing.Realm ?? desired.Realm,
-            SsoSessionIdleTimeout = desired.SsoSessionIdleTimeout ?? existing.SsoSessionIdleTimeout,
-            SsoSessionMaxLifespan = desired.SsoSessionMaxLifespan ?? existing.SsoSessionMaxLifespan,
-            RevokeRefreshToken = desired.RevokeRefreshToken ?? existing.RevokeRefreshToken,
-            RefreshTokenMaxReuse = desired.RefreshTokenMaxReuse ?? existing.RefreshTokenMaxReuse,
-            DisplayName = desired.DisplayName ?? existing.DisplayName,
-            Enabled = realmBuilder.EnabledValue ?? existing.Enabled,
-        };
-    }
-
-    private static ClientRepresentation MergeClient(ClientRepresentation existing, ClientRepresentation desired, ClientBuilder clientBuilder)
-    {
-        // Merge attributes: start from existing, then overlay desired values so that desired takes precedence.
-        Dictionary<string, string>? mergedAttributes = null;
-
-        if (existing.Attributes is { Count: > 0 } || desired.Attributes is { Count: > 0 })
-        {
-            mergedAttributes = new Dictionary<string, string>(existing.Attributes ?? []);
-
-            if (desired.Attributes is not null)
-            {
-                foreach (var (key, value) in desired.Attributes)
-                {
-                    mergedAttributes[key] = value;
-                }
-            }
-        }
-
-        return new ClientRepresentation
-        {
-            AdditionalProperties = existing.AdditionalProperties,
-            Id = existing.Id ?? desired.Id,
-            ClientId = existing.ClientId ?? desired.ClientId,
-            Name = desired.Name ?? existing.Name,
-            // Keycloak does not return client secrets in GET responses, so existing.Secret is always null.
-            // Only include Secret in the update payload when explicitly provided.
-            Secret = string.IsNullOrWhiteSpace(desired.Secret) ? null : desired.Secret,
-            FullScopeAllowed = desired.FullScopeAllowed ?? existing.FullScopeAllowed,
-            PublicClient = clientBuilder.PublicClientValue ?? existing.PublicClient,
-            StandardFlowEnabled = clientBuilder.StandardFlowEnabledValue ?? existing.StandardFlowEnabled,
-            RedirectUris = desired.RedirectUris is { Count: > 0 } ? desired.RedirectUris : existing.RedirectUris,
-            Attributes = mergedAttributes,
-            Enabled = clientBuilder.EnabledValue ?? existing.Enabled,
-        };
-    }
-
     private static string ExtractInternalIdFromLocationHeader(Refit.IApiResponse response, string resourceDescription)
     {
         if (!response.IsSuccessStatusCode)
@@ -377,31 +325,4 @@ internal sealed partial class KeycloakConfigurator : IKeycloakConfigurator
         return ExtractInternalIdFromLocationHeader(response, $"user '{username}'");
     }
 
-    private static ProtocolMapperRepresentation MergeProtocolMapper(ProtocolMapperRepresentation existing, ProtocolMapperRepresentation desired)
-    {
-        return new ProtocolMapperRepresentation
-        {
-            Id = existing.Id,
-            Name = desired.Name ?? existing.Name,
-            Protocol = desired.Protocol ?? existing.Protocol,
-            ProtocolMapper = desired.ProtocolMapper ?? existing.ProtocolMapper,
-            ConsentRequired = desired.ConsentRequired,
-            Config = desired.Config is { Count: > 0 } ? desired.Config : existing.Config,
-        };
-    }
-
-    private static UserRepresentation MergeUser(UserRepresentation existing, UserRepresentation desired)
-    {
-        return new UserRepresentation
-        {
-            AdditionalProperties = existing.AdditionalProperties,
-            Id = existing.Id ?? desired.Id,
-            Username = existing.Username ?? desired.Username,
-            FirstName = desired.FirstName ?? existing.FirstName,
-            LastName = desired.LastName ?? existing.LastName,
-            Email = desired.Email ?? existing.Email,
-            Enabled = desired.Enabled,
-            Credentials = desired.Credentials is { Count: > 0 } ? desired.Credentials : existing.Credentials,
-        };
-    }
 }

@@ -1,7 +1,7 @@
 # Agent instructions for VanDerTil.Keycloak.Client
 
 ## Project purpose
-This repository is a .NET 10 class library for provisioning Keycloak realms, clients, users, roles, and protocol mappers through the Keycloak admin API.
+This repository is a .NET 11 class library for provisioning Keycloak realms, clients, users, roles, and protocol mappers through the Keycloak admin API.
 
 ## Build, test, and validation
 - Build from the repository root:
@@ -27,7 +27,7 @@ This repository is a .NET 10 class library for provisioning Keycloak realms, cli
 - The public configuration surface is builder-based in `src/VanDerTil.Keycloak.Client/Configuration/`:
   - `KeycloakConfigurationBuilder` is the top-level entry point.
   - `RealmBuilder` owns clients, users, and roles for a single realm.
-  - `ClientBuilder`, `UserBuilder`, and `ProtocolMapperBuilder` build the Keycloak objects that will be created or updated.
+  - `ClientBuilder`, `UserBuilder`, and `ProtocolMapperBuilder` collect desired state, which is snapshotted before provisioning.
 - The runtime orchestration layer is `src/VanDerTil.Keycloak.Client/Configuration/KeycloakConfigurator.cs`.
   - It reads the fluent configuration, compares the desired state against Keycloak, and performs create/update operations through the Refit-based resource interfaces.
 - The Keycloak API boundary lives in `src/VanDerTil.Keycloak.Client/Client/`:
@@ -39,18 +39,18 @@ This repository is a .NET 10 class library for provisioning Keycloak realms, cli
 
 ## Repository conventions
 - Keep the configuration API fluent and builder-oriented. New features should usually be added by extending the builder hierarchy rather than introducing parallel configuration paths.
-- Follow the existing pattern where builders collect desired state and expose an internal `Build()` method that returns a representation object.
+- Follow the existing pattern where builders collect desired state and expose an internal `Build()` method that returns detached typed configuration. Map this configuration to API representations in explicit projections.
 - When changing Keycloak provisioning behavior, wire it through `KeycloakConfigurator` so the new property affects both create and update flows.
 - Prefer guard clauses at API boundaries:
   - `ArgumentNullException.ThrowIfNull(...)`
   - `ArgumentException.ThrowIfNullOrWhiteSpace(...)`
 - The codebase uses file-scoped namespaces and follows the formatting/naming rules from `.editorconfig`.
-- This project targets `net10.0`; keep changes compatible with the current SDK and package graph.
+- This project targets `net11.0`; keep changes compatible with the current SDK and package graph.
 
 ## Implementation notes for common changes
 - Adding a new realm/client/user property usually means:
   1. Add a builder method/property in the relevant builder class.
-  2. Apply the value in the builder's `Build()` result.
+  2. Include the value in the builder's detached configuration and the relevant create/update projections.
   3. Update the corresponding representation class if the payload needs a new JSON field.
   4. Update `KeycloakConfigurator` if the property needs special create/update handling.
 - For protocol mappers, use `ProtocolMapperBuilder` and its factory methods (`UserClientRolesToClaim`) instead of hand-rolling raw mapper dictionaries.

@@ -1,5 +1,3 @@
-using VanDerTil.Keycloak.Client.Client.Representations;
-
 namespace VanDerTil.Keycloak.Client.Configuration;
 
 /// <summary>
@@ -324,36 +322,21 @@ public sealed class ClientBuilder
         return this;
     }
 
-    internal bool? PublicClientValue => _publicClient;
-    internal bool? StandardFlowEnabledValue => _standardFlow;
-    internal bool? EnabledValue => _enabled;
-    internal IReadOnlyList<string> Roles => _roles;
-    internal IReadOnlyList<ProtocolMapperBuilder> ProtocolMappers => _protocolMappers;
-
-    internal ClientRepresentation Build()
+    internal ClientConfiguration Build() => new()
     {
-        // Keycloak does not expose postLogoutRedirectUris as a first-class list field on the REST API.
-        // Instead it is stored in the attributes bag under "post.logout.redirect.uris" with multiple
-        // values concatenated by "##". See https://github.com/keycloak/keycloak/discussions/19087.
-        Dictionary<string, string>? attributes = _attributes.Count > 0 ? new(_attributes) : null;
-
-        if (_postLogoutRedirectUris.Count > 0)
-        {
-            attributes ??= [];
-            attributes["post.logout.redirect.uris"] = string.Join("##", _postLogoutRedirectUris);
-        }
-
-        return new ClientRepresentation
-        {
-            FullScopeAllowed = _fullScopeAllowed,
-            ClientId = _clientId,
-            Name = _name,
-            Secret = _secret,
-            PublicClient = _publicClient ?? false,
-            StandardFlowEnabled = _standardFlow ?? false,
-            RedirectUris = _redirectUris.Count > 0 ? [.. _redirectUris] : null,
-            Attributes = attributes,
-            Enabled = _enabled ?? true,
-        };
-    }
+        ClientId = _clientId,
+        Name = _name,
+        Secret = _secret,
+        PublicClient = _publicClient,
+        StandardFlowEnabled = _standardFlow,
+        Enabled = _enabled,
+        FullScopeAllowed = _fullScopeAllowed,
+        RedirectUris = ConfigurationCopies.List(_redirectUris),
+        PostLogoutRedirectUris = ConfigurationCopies.List(_postLogoutRedirectUris),
+        Attributes = ConfigurationCopies.Dictionary(_attributes),
+        RoleScopes = ConfigurationCopies.Mappings(RoleScopes),
+        RealmRoleScopes = RealmRoleScopes is null ? null : ConfigurationCopies.List(RealmRoleScopes),
+        Roles = ConfigurationCopies.List(_roles),
+        ProtocolMappers = ConfigurationCopies.List(_protocolMappers.Select(mapper => mapper.Build())),
+    };
 }

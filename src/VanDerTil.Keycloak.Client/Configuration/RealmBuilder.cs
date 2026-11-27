@@ -1,5 +1,3 @@
-using VanDerTil.Keycloak.Client.Client.Representations;
-
 namespace VanDerTil.Keycloak.Client.Configuration;
 
 /// <summary>
@@ -148,25 +146,14 @@ public sealed class RealmBuilder
         return this;
     }
 
-    internal bool? EnabledValue => _enabled;
-
-    internal RealmRepresentation Build()
+    internal RealmConfiguration Build() => new()
     {
-        return new RealmRepresentation
-        {
-            SsoSessionIdleTimeout = _ssoSessionIdleTimeout,
-            SsoSessionMaxLifespan = _ssoSessionMaxLifespan,
-            RevokeRefreshToken = _revokeRefreshToken,
-            RefreshTokenMaxReuse = _refreshTokenMaxReuse,
-            Id = _realmId,
-            Realm = _realmId,
-            DisplayName = _displayName,
-            Enabled = _enabled ?? false,
-        };
-    }
-
-    internal IReadOnlyList<ClientBuilder> Clients => _clients;
-    internal IReadOnlyList<UserBuilder> Users => _users;
-    internal IReadOnlyList<string> Roles => _roles;
-    internal string RealmId => _realmId;
+        RealmId = _realmId, DisplayName = _displayName, Enabled = _enabled,
+        SsoSessionIdleTimeout = _ssoSessionIdleTimeout, SsoSessionMaxLifespan = _ssoSessionMaxLifespan,
+        RevokeRefreshToken = _revokeRefreshToken, RefreshTokenMaxReuse = _refreshTokenMaxReuse,
+        Clients = ConfigurationCopies.List(_clients.Select(client => client.Build())),
+        Users = ConfigurationCopies.List(_users.Select(user => user.Build())),
+        Groups = ConfigurationCopies.List(Groups.Select(group => group.Build())),
+        Roles = ConfigurationCopies.List(_roles),
+    };
 }
